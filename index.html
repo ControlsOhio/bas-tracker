@@ -1,0 +1,3073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a2332">
+<title>BAS Field Tracker — Controls Ohio</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  /* ── TOKENS ── */
+  :root {
+    --navy:    #1a2332;
+    --navy2:   #243044;
+    --steel:   #2d7dd2;
+    --steel2:  #1a5fa8;
+    --amber:   #f4a320;
+    --amber2:  #d4880a;
+    --pass:    #22c55e;
+    --fail:    #ef4444;
+    --warn:    #f59e0b;
+    --surface: #f0f4f8;
+    --card:    #ffffff;
+    --border:  #d1dbe8;
+    --text:    #1a2332;
+    --muted:   #5a6a7e;
+    --small:   11px;
+    --body:    14px;
+    --lg:      16px;
+    --xl:      20px;
+    --radius:  8px;
+    --shadow:  0 2px 8px rgba(0,0,0,.10);
+    --shadow2: 0 4px 20px rgba(0,0,0,.15);
+  }
+
+  /* ── RESET ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; font-size: var(--body); color: var(--text); background: var(--surface); }
+  button { font-family: inherit; cursor: pointer; border: none; }
+  input, select, textarea { font-family: inherit; font-size: var(--body); }
+  a { color: var(--steel); text-decoration: none; }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    background: var(--navy);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    height: 56px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    z-index: 100;
+  }
+  #topbar .logo { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+  #topbar .logo span { color: var(--amber); }
+  #topbar .project-tag {
+    background: rgba(255,255,255,.12);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: var(--small);
+    font-weight: 600;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #topbar .spacer { flex: 1; }
+  #topbar .offline-badge {
+    background: var(--warn);
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    display: none;
+  }
+  #topbar .offline-badge.show { display: block; }
+  #topbar .user-btn {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border-radius: 50%;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+  }
+  #topbar .sync-btn {
+    background: none;
+    color: rgba(255,255,255,.7);
+    font-size: 18px;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    transition: background .15s;
+  }
+  #topbar .sync-btn:hover { background: rgba(255,255,255,.12); }
+
+  /* ── NAV TABS ── */
+  #nav {
+    background: var(--navy2);
+    display: flex;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+    border-bottom: 2px solid var(--steel2);
+  }
+  #nav::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    background: none;
+    color: rgba(255,255,255,.55);
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color .15s, border-color .15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-tab:hover { color: rgba(255,255,255,.85); }
+  .nav-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+  .nav-tab .badge {
+    background: var(--fail);
+    color: #fff;
+    border-radius: 8px;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  /* ── MAIN CONTENT ── */
+  #main { flex: 1; overflow-y: auto; padding: 16px; }
+
+  /* ── SCREEN ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .card-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-header h2 { font-size: var(--lg); font-weight: 700; }
+  .card-body { padding: 14px 16px; }
+
+  /* ── STAT TILES ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stat-tile {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat-tile .num { font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-tile .lbl { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; margin-top: 4px; }
+  .stat-tile.open .num  { color: var(--fail); }
+  .stat-tile.prog .num  { color: var(--warn); }
+  .stat-tile.done .num  { color: var(--pass); }
+  .stat-tile.pend .num  { color: var(--steel); }
+  .stat-tile.total .num { color: var(--navy); }
+
+  /* ── ISSUE LIST ── */
+  .issue-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background .1s;
+  }
+  .issue-item:last-child { border-bottom: none; }
+  .issue-item:hover { background: #f7fafd; }
+  .issue-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .issue-dot.Open       { background: var(--fail); }
+  .issue-dot.Assigned   { background: var(--steel); }
+  .issue-dot.In-Progress { background: var(--warn); }
+  .issue-dot.Resolved   { background: var(--pass); }
+  .issue-dot.Pending    { background: #a855f7; }
+  .issue-dot.Closed     { background: var(--muted); }
+  .issue-dot.Deferred   { background: #6b7280; }
+  .issue-info { flex: 1; min-width: 0; }
+  .issue-title { font-weight: 600; font-size: var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .issue-meta { font-size: var(--small); color: var(--muted); margin-top: 2px; }
+  .issue-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: .2px;
+  }
+  .tag.Physical   { background: #fef3c7; color: #92400e; }
+  .tag.Software   { background: #dbeafe; color: #1e40af; }
+  .tag.SOO        { background: #f3e8ff; color: #6b21a8; }
+  .tag.P2P        { background: #d1fae5; color: #065f46; }
+  .tag.PostComm   { background: #fce7f3; color: #9d174d; }
+  .tag.prio-Critical { background: #fee2e2; color: #991b1b; }
+  .tag.prio-High     { background: #fed7aa; color: #9a3412; }
+  .tag.prio-Medium   { background: #fef9c3; color: #713f12; }
+  .tag.prio-Low      { background: #f0fdf4; color: #166534; }
+
+  /* ── FORMS ── */
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 5px; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text);
+    transition: border-color .15s;
+    font-size: var(--body);
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus { outline: none; border-color: var(--steel); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+
+  /* ── CHECKBOX GRID ── */
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .check-item input[type=checkbox] { accent-color: var(--steel); width: 15px; height: 15px; }
+  .check-item.checked { border-color: var(--steel); background: #eff6ff; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--steel); color: #fff; }
+  .btn-primary:hover { background: var(--steel2); }
+  .btn-amber { background: var(--amber); color: #000; }
+  .btn-amber:hover { background: var(--amber2); }
+  .btn-ghost { background: transparent; color: var(--steel); border: 1.5px solid var(--steel); }
+  .btn-ghost:hover { background: #eff6ff; }
+  .btn-danger { background: var(--fail); color: #fff; }
+  .btn-success { background: var(--pass); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-full { width: 100%; justify-content: center; }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar select, .filter-bar input {
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--card);
+    flex: 1;
+    min-width: 120px;
+  }
+  .filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: var(--steel); }
+
+  /* ── P2P TABLE ── */
+  .p2p-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .p2p-table th {
+    background: var(--navy);
+    color: #fff;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+  }
+  .p2p-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .p2p-table tr:hover td { background: #f7fafd; }
+  .p2p-table tr.pass-row td { background: #f0fdf4; }
+  .p2p-table tr.fail-row td { background: #fff1f2; }
+
+  .pf-btn {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1.5px solid;
+    cursor: pointer;
+    transition: background .1s;
+  }
+  .pf-btn.pass { border-color: var(--pass); color: var(--pass); background: transparent; }
+  .pf-btn.pass.active { background: var(--pass); color: #fff; }
+  .pf-btn.fail { border-color: var(--fail); color: var(--fail); background: transparent; }
+  .pf-btn.fail.active { background: var(--fail); color: #fff; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { margin-bottom: 14px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+  .progress-bar { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 5px; background: var(--steel); transition: width .4s; }
+  .progress-fill.done { background: var(--pass); }
+
+  /* ── SOO ── */
+  .soo-seq { margin-bottom: 14px; border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .soo-seq-header {
+    background: var(--navy2);
+    color: #fff;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .soo-seq-header h3 { font-size: 14px; font-weight: 600; }
+  .soo-steps { display: none; }
+  .soo-steps.open { display: block; }
+  .soo-step {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .soo-step:last-child { border-bottom: none; }
+  .soo-step-num { font-size: 11px; font-weight: 700; color: var(--muted); min-width: 24px; padding-top: 2px; }
+  .soo-step-body { flex: 1; }
+  .soo-step-body .desc { font-weight: 500; margin-bottom: 5px; }
+  .soo-step-body .observed { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .soo-step-body input[type=text] {
+    width: 100%;
+    padding: 6px 9px;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  .soo-pf { display: flex; gap: 6px; margin-top: 6px; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex; align-items: flex-end;
+    z-index: 1000;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--card);
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+    padding: 20px 16px 32px;
+    transform: translateY(40px);
+    transition: transform .25s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .modal h2 { font-size: var(--xl); font-weight: 800; margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+
+  /* ── ACTIVITY LOG ── */
+  .activity-log { margin-top: 14px; }
+  .activity-log h4 { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 10px; }
+  .log-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .log-body { flex: 1; }
+  .log-action { font-size: 12px; font-weight: 600; }
+  .log-time { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .log-note { font-size: 12px; color: var(--text); margin-top: 3px; background: var(--surface); border-radius: 5px; padding: 6px 8px; }
+
+  /* ── STATUS BADGE ── */
+  .status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 10px;
+    display: inline-block;
+    letter-spacing: .2px;
+  }
+  .status-badge.Open         { background: #fee2e2; color: #991b1b; }
+  .status-badge.Assigned     { background: #dbeafe; color: #1e40af; }
+  .status-badge.In-Progress  { background: #fef9c3; color: #713f12; }
+  .status-badge.Resolved     { background: #d1fae5; color: #065f46; }
+  .status-badge.Pending      { background: #f3e8ff; color: #6b21a8; }
+  .status-badge.Closed       { background: #f3f4f6; color: #374151; }
+  .status-badge.Deferred     { background: #f3f4f6; color: #6b7280; }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    position: fixed; inset: 0;
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 24px;
+    z-index: 9999;
+    padding: 32px;
+  }
+  #login-screen .logo-lg { color: #fff; font-size: 32px; font-weight: 800; text-align: center; letter-spacing: -.5px; }
+  #login-screen .logo-lg span { color: var(--amber); }
+  #login-screen .sub { color: rgba(255,255,255,.5); font-size: 14px; text-align: center; }
+  #login-screen .login-card { background: var(--navy2); border-radius: 12px; padding: 28px; width: 100%; max-width: 360px; }
+  #login-screen .login-card p { color: rgba(255,255,255,.7); font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+  #login-screen .btn-ms { background: var(--steel); color: #fff; width: 100%; justify-content: center; padding: 12px; font-size: 15px; border-radius: 8px; }
+  #login-screen .error-msg { color: var(--fail); font-size: 12px; text-align: center; min-height: 18px; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--navy); color: #fff;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 600;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 9000; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── LOADING ── */
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--steel);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 40px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--muted); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; line-height: 1.5; }
+
+  /* ── SECTION HEADER ── */
+  .section-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-hdr h2 { font-size: var(--lg); font-weight: 700; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* ── SIGN-OFF BLOCK ── */
+  .signoff-block { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
+  .signoff-block h4 { font-size: 12px; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 6px; }
+  .signoff-block .sig-row { display: flex; justify-content: space-between; font-size: 12px; color: #065f46; margin-top: 4px; }
+
+  /* ── REPORT ── */
+  .report-section { margin-bottom: 20px; }
+  .report-section h3 { font-size: 14px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--steel); padding-bottom: 6px; margin-bottom: 10px; }
+  .report-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .report-row:last-child { border-bottom: none; }
+
+  /* ── POST-COMM ── */
+  .postcomm-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .postcomm-item:last-child { border-bottom: none; }
+  .postcomm-item input[type=checkbox] { accent-color: var(--pass); width: 16px; height: 16px; }
+  .postcomm-item label { flex: 1; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .postcomm-item .pc-who { font-size: 11px; color: var(--muted); }
+
+  /* ── TEMPLATE LIBRARY ── */
+  .tmpl-group-header {
+    background: var(--navy2);
+    color: #fff;
+    padding: 7px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .tmpl-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background .1s;
+  }
+  .tmpl-item:last-child { border-bottom: none; }
+  .tmpl-item:hover { background: #f7fafd; }
+  .tmpl-item.selected { background: #eff6ff; border-left: 3px solid var(--steel); }
+  .tmpl-item input[type=checkbox] { accent-color: var(--steel); width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; }
+  .tmpl-item .tmpl-body { flex: 1; }
+  .tmpl-item .tmpl-title { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+  .tmpl-item .tmpl-desc  { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .tmpl-item .tmpl-tags  { display: flex; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
+
+  /* ── RESPONSIVE ── */
+  @media (min-width: 768px) {
+    #main { padding: 20px 24px; max-width: 960px; margin: 0 auto; }
+    .stat-grid { grid-template-columns: repeat(5, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="logo-lg">BAS Field<span>Tracker</span></div>
+  <div class="sub">Controls Ohio — Building Automation Systems</div>
+  <div class="login-card">
+    <p>Sign in with your Microsoft 365 account to access project issue tracking, P2P checkout, and commissioning workflows.</p>
+    <button class="btn btn-ms" onclick="signIn()">⊞ &nbsp;Sign in with Microsoft</button>
+    <div style="margin-top:12px" class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- APP SHELL -->
+<div id="app" style="display:none">
+  <div id="topbar">
+    <div class="logo">BAS<span>Tracker</span></div>
+    <div class="project-tag" id="project-tag">No Project</div>
+    <div class="spacer"></div>
+    <span class="offline-badge" id="offline-badge">OFFLINE</span>
+    <button class="sync-btn" onclick="syncAll()" title="Sync">↻</button>
+    <div class="user-btn" id="user-initials">?</div>
+  </div>
+
+  <div id="nav">
+    <button class="nav-tab active" data-screen="allprojects" onclick="switchTab(this)">
+      ⊞ All Projects
+    </button>
+    <button class="nav-tab" data-screen="dashboard" onclick="switchTab(this)">
+      ⬛ Dashboard
+    </button>
+    <button class="nav-tab" data-screen="issues" onclick="switchTab(this)">
+      ⚠ Issues <span class="badge" id="open-badge" style="display:none"></span>
+    </button>
+    <button class="nav-tab" data-screen="p2p" onclick="switchTab(this)">
+      ✓ P2P Checkout
+    </button>
+    <button class="nav-tab" data-screen="soo" onclick="switchTab(this)">
+      ≡ SOO Verify
+    </button>
+    <button class="nav-tab" data-screen="postcomm" onclick="switchTab(this)">
+      ★ Post-Comm
+    </button>
+    <button class="nav-tab" data-screen="report" onclick="switchTab(this)">
+      ⊞ Report
+    </button>
+    <button class="nav-tab" data-screen="settings" onclick="switchTab(this)">
+      ⚙ Settings
+    </button>
+  </div>
+
+  <div id="main">
+
+    <!-- ══ ALL PROJECTS ══ -->
+    <div class="screen active" id="screen-allprojects">
+      <div class="section-hdr" style="margin-bottom:14px">
+        <h2>All Projects</h2>
+        <button class="btn btn-amber btn-sm" onclick="switchTabById('settings')">+ New Project</button>
+      </div>
+      <div id="all-projects-grid">
+        <div class="empty-state"><div class="icon">📁</div><p>No projects yet. Create one in Settings.</p></div>
+      </div>
+    </div>
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="screen" id="screen-dashboard">
+      <div class="section-hdr" style="margin-bottom:14px">
+        <h2>Project Overview</h2>
+        <select id="project-select" onchange="selectProject(this.value)" style="font-size:13px; padding:6px 10px; border:1.5px solid var(--border); border-radius:6px; background:var(--card);">
+          <option value="">Select Project…</option>
+        </select>
+      </div>
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-tile open"><div class="num" id="stat-open">—</div><div class="lbl">Open</div></div>
+        <div class="stat-tile prog"><div class="num" id="stat-prog">—</div><div class="lbl">In Progress</div></div>
+        <div class="stat-tile pend"><div class="num" id="stat-pend">—</div><div class="lbl">Pending</div></div>
+        <div class="stat-tile done"><div class="num" id="stat-done">—</div><div class="lbl">Closed</div></div>
+        <div class="stat-tile total"><div class="num" id="stat-total">—</div><div class="lbl">Total</div></div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header"><h2>P2P Checkout</h2></div>
+        <div class="card-body">
+          <div class="progress-wrap">
+            <div class="progress-label"><span>Completion</span><span id="p2p-pct">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="p2p-bar" style="width:0%"></div></div>
+          </div>
+          <div style="font-size:12px; color:var(--muted)" id="p2p-summary">No checkout items loaded.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Recent Issues</h2><div style="flex:1"></div><button class="btn btn-sm btn-primary" onclick="switchTabById('issues')">View All</button></div>
+        <div id="recent-issues-list"><div class="empty-state"><div class="icon">📋</div><p>No issues yet. Select a project to begin.</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══ ISSUES ══ -->
+    <div class="screen" id="screen-issues">
+      <div class="section-hdr">
+        <h2>Issue Log</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="openTemplateModal()">⊞ Common Issues</button>
+          <button class="btn btn-amber" onclick="openNewIssueModal()">+ New Issue</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input type="text" placeholder="Search issues…" id="issue-search" oninput="renderIssues()">
+        <select id="filter-status" onchange="renderIssues()">
+          <option value="">All Statuses</option>
+          <option>Open</option><option>Assigned</option><option>In Progress</option>
+          <option>Resolved</option><option>Pending Client Sign-Off</option><option>Closed</option><option>Deferred</option>
+        </select>
+        <select id="filter-cat" onchange="renderIssues()">
+          <option value="">All Categories</option>
+          <option>Physical</option><option>Software</option><option>SOO</option><option>P2P</option><option>PostComm</option>
+        </select>
+      </div>
+      <div class="card" id="issues-list-card">
+        <div id="issues-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ══ P2P ══ -->
+    <div class="screen" id="screen-p2p">
+      <div class="section-hdr">
+        <h2>Point-to-Point Checkout</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="openP2PImportModal()">⬆ Import Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="openAddP2PModal()">+ Add Point</button>
+        </div>
+      </div>
+      <!-- Import banner (shows after import) -->
+      <div id="p2p-import-banner" style="display:none" class="card" style="margin-bottom:12px">
+        <div class="card-body" style="padding:10px 14px;display:flex;align-items:center;gap:12px;background:#f0fdf4;border-radius:var(--radius)">
+          <span style="font-size:20px">✓</span>
+          <div style="flex:1;font-size:13px" id="p2p-import-msg"></div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('p2p-import-banner').style.display='none'">×</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-body">
+          <div class="progress-wrap" style="margin-bottom:0">
+            <div class="progress-label"><span id="p2p-label2">0 / 0 points verified</span><span id="p2p-pct2">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="p2p-bar2" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <select id="p2p-filter-sys" onchange="renderP2P()"><option value="">All Systems</option></select>
+        <select id="p2p-filter-pf" onchange="renderP2P()">
+          <option value="">All</option><option value="Pass">Pass</option><option value="Fail">Fail</option><option value="">Pending</option>
+        </select>
+      </div>
+      <div class="card" style="overflow:auto">
+        <table class="p2p-table" id="p2p-table">
+          <thead>
+            <tr>
+              <th>Point Name</th><th>Type</th><th>Controller</th><th>Network Addr.</th><th>Drawing Ref.</th><th>Result</th><th>Tech</th><th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="p2p-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ SOO ══ -->
+    <div class="screen" id="screen-soo">
+      <div class="section-hdr">
+        <h2>Sequence of Operations</h2>
+        <button class="btn btn-amber btn-sm" onclick="openAddSeqModal()">+ New Sequence</button>
+      </div>
+      <div id="soo-list"><div class="empty-state"><div class="icon">≡</div><p>No sequences defined yet. Add a sequence to begin SOO verification.</p></div></div>
+    </div>
+
+    <!-- ══ POST-COMM ══ -->
+    <div class="screen" id="screen-postcomm">
+      <div class="section-hdr"><h2>Post-Commissioning</h2></div>
+      <div class="card">
+        <div class="card-body">
+          <div class="progress-wrap">
+            <div class="progress-label"><span>Checklist Completion</span><span id="pc-pct">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="pc-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div id="postcomm-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ REPORT ══ -->
+    <div class="screen" id="screen-report">
+      <div class="section-hdr"><h2>Commissioning Report</h2></div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-body" style="display:flex; gap:10px; flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="generateReport('internal')">Internal Report</button>
+          <button class="btn btn-ghost" onclick="generateReport('client')">Client Report</button>
+          <button class="btn btn-ghost" onclick="printReport()">🖨 Print / PDF</button>
+        </div>
+      </div>
+      <div id="report-output"></div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="screen" id="screen-settings">
+      <div class="section-hdr"><h2>Settings & Projects</h2></div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header"><h2>Add New Project</h2></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group"><label>Project Name</label><input type="text" id="new-proj-name" placeholder="e.g. Worthington Medical Center"></div>
+            <div class="form-group"><label>Building</label><input type="text" id="new-proj-building" placeholder="Building name"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>BAS Platform</label>
+              <select id="new-proj-bas">
+                <option>Honeywell WEBs/EBI</option><option>Distech / Acuity</option>
+                <option>Reliable Controls</option><option>Multiple / Mixed</option><option>Other</option>
+              </select>
+            </div>
+            <div class="form-group"><label>PM / Engineer</label><input type="text" id="new-proj-pm" placeholder="Name"></div>
+          </div>
+          <div class="form-group"><label>CxA</label><input type="text" id="new-proj-cxa" placeholder="Commissioning Agent name"></div>
+          <button class="btn btn-primary btn-full" onclick="createProject()">Create Project</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>All Projects</h2></div>
+        <div id="projects-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══ MODALS ══ -->
+
+<!-- New Issue Modal -->
+<div class="modal-overlay" id="modal-issue">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Log New Issue</h2>
+    <div class="form-group"><label>Issue Title</label><input type="text" id="ni-title" placeholder="Brief description of the issue"></div>
+    <div class="form-group"><label>Category (select all that apply)</label>
+      <div class="check-grid">
+        <label class="check-item" id="cc-Physical"><input type="checkbox" value="Physical" onchange="toggleCheck(this)"> Physical Install</label>
+        <label class="check-item" id="cc-Software"><input type="checkbox" value="Software" onchange="toggleCheck(this)"> Software / UI</label>
+        <label class="check-item" id="cc-SOO"><input type="checkbox" value="SOO" onchange="toggleCheck(this)"> SOO Verification</label>
+        <label class="check-item" id="cc-P2P"><input type="checkbox" value="P2P" onchange="toggleCheck(this)"> P2P Checkout</label>
+        <label class="check-item" id="cc-PostComm"><input type="checkbox" value="PostComm" onchange="toggleCheck(this)"> Post-Comm</label>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Priority</label>
+        <select id="ni-priority"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select>
+      </div>
+      <div class="form-group"><label>System / Equipment</label>
+        <input type="text" id="ni-equipment" placeholder="e.g. AHU-1, VAV-203">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Controller / Panel ID</label><input type="text" id="ni-controller" placeholder="Controller tag"></div>
+      <div class="form-group"><label>Network Address</label><input type="text" id="ni-network" placeholder="IP or device address"></div>
+    </div>
+    <div class="form-group"><label>Drawing Reference</label><input type="text" id="ni-drawing" placeholder="Sheet number or drawing ref"></div>
+    <div class="form-group"><label>Description</label><textarea id="ni-desc" placeholder="Detailed description of the issue…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Assigned To</label><input type="text" id="ni-assigned" placeholder="Name"></div>
+      <div class="form-group"><label>Target Date</label><input type="date" id="ni-target"></div>
+    </div>
+    <div class="form-group">
+      <label>Photos / Attachments</label>
+      <div id="ni-photo-zone" style="border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:border-color .2s" onclick="document.getElementById('ni-photo-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--steel)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="handlePhotoDrop(event,'ni')">
+        <div style="font-size:22px;margin-bottom:4px">📷</div>
+        <div style="font-size:12px;color:var(--muted)">Tap to take photo or choose from gallery</div>
+        <input type="file" id="ni-photo-input" accept="image/*" multiple capture="environment" style="display:none" onchange="handlePhotoSelect(this,'ni')">
+      </div>
+      <div id="ni-photo-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" onclick="saveIssue()">Save Issue</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-issue')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Common Issues Template Modal -->
+<div class="modal-overlay" id="modal-templates">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Common BAS Issues</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Select one or more issues to log them instantly. You can edit details after adding.</p>
+    <div class="filter-bar" style="margin-bottom:12px">
+      <select id="tmpl-filter" onchange="renderTemplates()">
+        <option value="">All Categories</option>
+        <option value="Physical">Physical Installation</option>
+        <option value="Software">Software / UI</option>
+        <option value="SOO">Sequence of Operations</option>
+        <option value="P2P">P2P Checkout</option>
+      </select>
+      <input type="text" id="tmpl-search" placeholder="Search templates…" oninput="renderTemplates()" style="flex:2">
+    </div>
+    <div id="tmpl-selected-bar" style="display:none;background:#eff6ff;border:1.5px solid var(--steel);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--steel)"></div>
+    <div id="templates-list" style="max-height:50vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-primary btn-full" onclick="logSelectedTemplates()">Log Selected Issues</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-templates');selectedTemplates=[]">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Issue Detail Modal -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="detail-content"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add P2P Point Modal -->
+<div class="modal-overlay" id="modal-p2p">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Add P2P Point</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Point Name</label><input type="text" id="p2p-name" placeholder="e.g. AHU-1 SAT"></div>
+      <div class="form-group"><label>Point Type</label>
+        <select id="p2p-type"><option>AI</option><option>AO</option><option>DI</option><option>DO</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>System / Equipment</label><input type="text" id="p2p-system" placeholder="AHU-1"></div>
+      <div class="form-group"><label>Controller ID</label><input type="text" id="p2p-ctrl" placeholder="Controller tag"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Network Address</label><input type="text" id="p2p-addr" placeholder="Device address"></div>
+      <div class="form-group"><label>Drawing Reference</label><input type="text" id="p2p-draw" placeholder="Sheet / ref"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" onclick="saveP2PPoint()">Add Point</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-p2p')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- P2P Excel Import Modal -->
+<div class="modal-overlay" id="modal-p2p-import">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Import P2P Schedule from Excel</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">
+      Upload your engineered P2P Excel schedule. The app will read each row and create checkout items automatically. Use the Controls Ohio template for best results.
+    </p>
+
+    <!-- Drop zone -->
+    <div id="p2p-dropzone"
+      style="border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:14px"
+      onclick="document.getElementById('p2p-file-input').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--steel)';this.style.background='#eff6ff'"
+      ondragleave="this.style.borderColor='var(--border)';this.style.background=''"
+      ondrop="handleP2PDrop(event)">
+      <div style="font-size:32px;margin-bottom:8px">📊</div>
+      <div style="font-weight:700;font-size:14px;color:var(--navy);margin-bottom:4px">Drop your Excel file here</div>
+      <div style="font-size:12px;color:var(--muted)">or click to browse — .xlsx files only</div>
+      <input type="file" id="p2p-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleP2PFileSelect(this)">
+    </div>
+
+    <!-- Column mapping -->
+    <div id="p2p-mapping-section" style="display:none">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Column Mapping — Sheet: <span id="p2p-sheet-name"></span></div>
+      <div style="background:var(--surface);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Map your Excel columns to the app fields. If you used the Controls Ohio template, these are auto-filled.</div>
+        <div id="p2p-column-map" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+      </div>
+      <div id="p2p-preview-section" style="display:none">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Preview — first 5 rows</div>
+        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:12px">
+          <table style="width:100%;border-collapse:collapse;font-size:11px" id="p2p-preview-table"></table>
+        </div>
+        <div id="p2p-import-count" style="font-size:13px;font-weight:600;color:var(--steel);margin-bottom:4px"></div>
+        <div id="p2p-import-warn" style="font-size:12px;color:var(--warn);display:none"></div>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="p2p-parse-loading" style="display:none;text-align:center;padding:20px">
+      <div class="spinner" style="margin:0 auto 10px"></div>
+      <div style="font-size:13px;color:var(--muted)">Reading Excel file…</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" id="p2p-import-btn" onclick="importP2PFromExcel()" style="display:none">Import Points</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-p2p-import');resetP2PImport()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add SOO Sequence Modal -->
+<div class="modal-overlay" id="modal-seq">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>New SOO Sequence</h2>
+    <div class="form-group"><label>Sequence Name</label><input type="text" id="seq-name" placeholder="e.g. Morning Warmup, Occupied Cooling"></div>
+    <div class="form-group"><label>Equipment / System</label><input type="text" id="seq-equip" placeholder="e.g. AHU-1"></div>
+    <div id="seq-steps-wrap">
+      <label class="form-group" style="display:block; font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:8px">Steps</label>
+      <div id="seq-steps-list"></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addSeqStep()">+ Add Step</button>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" onclick="saveSequence()">Create Sequence</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-seq')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal-overlay" id="modal-status">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Update Status</h2>
+    <div class="form-group"><label>New Status</label>
+      <select id="new-status">
+        <option>Open</option><option>Assigned</option><option>In Progress</option>
+        <option>Resolved</option><option>Pending Client Sign-Off</option><option>Closed</option><option>Deferred</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Note (required)</label><textarea id="status-note" placeholder="Describe what changed…" style="min-height:70px"></textarea></div>
+    <input type="hidden" id="status-issue-id">
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" onclick="commitStatusUpdate()">Update</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-status')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════════
+const CLIENT_ID  = '72ac68d5-6369-4b51-a740-f7e65fbfcbbf';
+const TENANT_ID  = '3d0c6d5f-154a-49c3-8fd9-0038eada8dcf';
+const SHAREPOINT_SITE = 'https://controlsohiocom.sharepoint.com/sites/CCOProjectSite';
+const SCOPES = ['https://graph.microsoft.com/Sites.ReadWrite.All','https://graph.microsoft.com/User.Read','https://graph.microsoft.com/User.ReadBasic.All'];
+
+const GRAPH = 'https://graph.microsoft.com/v1.0';
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+let accessToken = null;
+let currentUser = null;
+let currentProject = null;
+let siteId = null;
+
+let projects  = [];
+let issues    = [];
+let p2pPoints = [];
+let sequences = [];
+let postCommItems = [];
+let activityLog = [];
+
+// Offline queue
+let offlineQueue = JSON.parse(localStorage.getItem('bas_offline_queue') || '[]');
+let isOnline = navigator.onLine;
+
+// ══════════════════════════════════════════════════════════
+//  MSAL / AUTH  (using implicit flow via redirect)
+// ══════════════════════════════════════════════════════════
+const AUTH_URL = `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize`;
+const REDIRECT = window.location.href.split('?')[0].split('#')[0];
+
+function signIn() {
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    response_type: 'token',
+    redirect_uri: REDIRECT,
+    scope: SCOPES.join(' '),
+    response_mode: 'fragment',
+    nonce: Math.random().toString(36),
+    prompt: 'select_account'
+  });
+  window.location = AUTH_URL + '?' + params;
+}
+
+function parseTokenFromHash() {
+  const hash = window.location.hash.substring(1);
+  if (!hash) return null;
+  const p = new URLSearchParams(hash);
+  const token = p.get('access_token');
+  const err = p.get('error_description');
+  if (err) { document.getElementById('login-error').textContent = err; return null; }
+  if (token) {
+    // store with expiry
+    const exp = Date.now() + (parseInt(p.get('expires_in') || '3600') * 1000);
+    localStorage.setItem('bas_token', JSON.stringify({ token, exp }));
+    history.replaceState(null, '', REDIRECT);
+    return token;
+  }
+  return null;
+}
+
+function loadCachedToken() {
+  try {
+    const s = localStorage.getItem('bas_token');
+    if (!s) return null;
+    const { token, exp } = JSON.parse(s);
+    if (Date.now() > exp - 60000) { localStorage.removeItem('bas_token'); return null; }
+    return token;
+  } catch { return null; }
+}
+
+// ══════════════════════════════════════════════════════════
+//  GRAPH API HELPERS
+// ══════════════════════════════════════════════════════════
+async function graphGet(path) {
+  const r = await fetch(GRAPH + path, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function graphPost(path, body) {
+  const r = await fetch(GRAPH + path, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function graphPatch(path, body) {
+  const r = await fetch(GRAPH + path, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ══════════════════════════════════════════════════════════
+//  SHAREPOINT LISTS
+// ══════════════════════════════════════════════════════════
+const LISTS = {
+  Projects:    'BAS_Projects',
+  Issues:      'BAS_Issues',
+  P2P:         'BAS_P2P',
+  Sequences:   'BAS_Sequences',
+  SOOSteps:    'BAS_SOOSteps',
+  PostComm:    'BAS_PostComm',
+  ActivityLog: 'BAS_ActivityLog'
+};
+
+async function ensureSiteId() {
+  if (siteId) return;
+  const url = SHAREPOINT_SITE.replace('https://', '');
+  const host = url.split('/')[0];
+  const path = url.split('/').slice(1).join('/');
+  const res = await graphGet(`/sites/${host}:/${path}`);
+  siteId = res.id;
+}
+
+async function listItems(listName, filter = '') {
+  await ensureSiteId();
+  const qs = filter ? `?$filter=${encodeURIComponent(filter)}&$top=500&$expand=fields` : '?$top=500&$expand=fields';
+  const res = await graphGet(`/sites/${siteId}/lists/${listName}/items${qs}`);
+  return (res.value || []).map(i => ({ id: i.id, ...i.fields }));
+}
+
+async function createItem(listName, fields) {
+  await ensureSiteId();
+  return graphPost(`/sites/${siteId}/lists/${listName}/items`, { fields });
+}
+
+async function updateItem(listName, itemId, fields) {
+  await ensureSiteId();
+  return graphPatch(`/sites/${siteId}/lists/${listName}/items/${itemId}/fields`, fields);
+}
+
+// ══════════════════════════════════════════════════════════
+//  LIST BOOTSTRAP — create lists if they don't exist
+// ══════════════════════════════════════════════════════════
+async function ensureList(displayName, columns) {
+  await ensureSiteId();
+  try {
+    await graphGet(`/sites/${siteId}/lists/${displayName}`);
+  } catch {
+    // create the list
+    await graphPost(`/sites/${siteId}/lists`, {
+      displayName,
+      list: { template: 'genericList' }
+    });
+    // add columns
+    for (const col of columns) {
+      try {
+        await graphPost(`/sites/${siteId}/lists/${displayName}/columns`, col);
+      } catch(e) { console.warn('col err', col.name, e.message); }
+    }
+  }
+}
+
+async function bootstrapLists() {
+  showToast('Setting up project lists…');
+  const textCol = n => ({ name: n, text: {} });
+  const numCol  = n => ({ name: n, number: {} });
+  const boolCol = n => ({ name: n, boolean: {} });
+  const dateCol = n => ({ name: n, dateTime: { format: 'dateOnly' } });
+  const noteCol = n => ({ name: n, text: { allowMultipleLines: true } });
+
+  await ensureList(LISTS.Projects, [
+    textCol('ProjectName'), textCol('Building'), textCol('BASPlatform'),
+    textCol('PMName'), textCol('CxAName'), textCol('Status'),
+    dateCol('StartDate'), dateCol('TargetCompletion')
+  ]);
+  await ensureList(LISTS.Issues, [
+    textCol('ProjectId'), textCol('Title2'), textCol('IssueNumber'), textCol('Category'),
+    textCol('Priority'), textCol('Status'), textCol('Equipment'),
+    textCol('Controller'), textCol('NetworkAddress'), textCol('DrawingRef'),
+    noteCol('Description'), textCol('AssignedTo'), dateCol('TargetDate'),
+    textCol('ReportedBy'), noteCol('ResolutionNotes'),
+    textCol('ResolvedBy'), textCol('CxAVerifiedBy'), textCol('ClientSignOffBy'),
+    textCol('ClientSignOffDate'), textCol('IsWarranty')
+  ]);
+  await ensureList(LISTS.P2P, [
+    textCol('ProjectId'), textCol('PointName'), textCol('PointType'),
+    textCol('System'), textCol('Controller'), textCol('NetworkAddress'),
+    textCol('DrawingRef'), textCol('Result'), textCol('TechInitials'),
+    textCol('CheckedAt'), textCol('Notes')
+  ]);
+  await ensureList(LISTS.Sequences, [
+    textCol('ProjectId'), textCol('SeqName'), textCol('Equipment'),
+    textCol('Status')
+  ]);
+  await ensureList(LISTS.SOOSteps, [
+    textCol('ProjectId'), textCol('SequenceId'), numCol('StepNum'),
+    noteCol('StepDesc'), noteCol('ExpectedBehavior'), noteCol('ObservedBehavior'),
+    textCol('Result'), textCol('VerifiedBy')
+  ]);
+  await ensureList(LISTS.PostComm, [
+    textCol('ProjectId'), textCol('Category'), textCol('CheckItem'),
+    boolCol('Completed'), textCol('CompletedBy'), textCol('CompletedAt')
+  ]);
+  await ensureList(LISTS.ActivityLog, [
+    textCol('IssueId'), textCol('Action'), noteCol('Note'),
+    textCol('UserName')
+  ]);
+  showToast('Lists ready ✓');
+}
+
+// ══════════════════════════════════════════════════════════
+//  LOAD DATA
+// ══════════════════════════════════════════════════════════
+async function loadProjects() {
+  try {
+    projects = await listItems(LISTS.Projects);
+    renderProjectSelect();
+    renderProjectsList();
+  } catch(e) {
+    console.error('load projects', e);
+    // if lists don't exist, bootstrap them
+    if (e.message.includes('404') || e.message.includes('itemNotFound')) {
+      await bootstrapLists();
+      await seedPostCommChecklist();
+      projects = [];
+      renderProjectSelect();
+      renderProjectsList();
+    }
+  }
+}
+
+async function loadProjectData(projId) {
+  if (!projId) return;
+  try {
+    [issues, p2pPoints, sequences, postCommItems, activityLog] = await Promise.all([
+      listItems(LISTS.Issues, `ProjectId eq '${projId}'`),
+      listItems(LISTS.P2P,    `ProjectId eq '${projId}'`),
+      listItems(LISTS.Sequences, `ProjectId eq '${projId}'`),
+      listItems(LISTS.PostComm,  `ProjectId eq '${projId}'`),
+      listItems(LISTS.ActivityLog)
+    ]);
+    // load SOO steps for each sequence
+    for (const seq of sequences) {
+      seq.steps = await listItems(LISTS.SOOSteps, `SequenceId eq '${seq.id}'`);
+    }
+    renderAll();
+    cacheOffline();
+  } catch(e) {
+    console.error('load project data', e);
+    loadFromCache();
+  }
+}
+
+function cacheOffline() {
+  try {
+    localStorage.setItem('bas_cache', JSON.stringify({ issues, p2pPoints, sequences, postCommItems, activityLog, projectId: currentProject?.id }));
+  } catch {}
+}
+
+function loadFromCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem('bas_cache') || '{}');
+    if (c.projectId === currentProject?.id) {
+      issues = c.issues || []; p2pPoints = c.p2pPoints || [];
+      sequences = c.sequences || []; postCommItems = c.postCommItems || [];
+      activityLog = c.activityLog || [];
+      renderAll();
+      showToast('Loaded from cache (offline)');
+    }
+  } catch {}
+}
+
+// ══════════════════════════════════════════════════════════
+//  SEED POST-COMM CHECKLIST
+// ══════════════════════════════════════════════════════════
+const PC_TEMPLATE = [
+  { cat: 'Documentation', item: 'As-built drawings reviewed and accepted' },
+  { cat: 'Documentation', item: 'O&M manuals provided to owner' },
+  { cat: 'Documentation', item: 'BAS graphics documentation complete' },
+  { cat: 'Documentation', item: 'Commissioning report delivered to owner' },
+  { cat: 'Training', item: 'Owner/operator training completed' },
+  { cat: 'Training', item: 'Training sign-off sheet obtained' },
+  { cat: 'Systems', item: 'All P2P points verified Pass' },
+  { cat: 'Systems', item: 'All SOO sequences verified Pass' },
+  { cat: 'Systems', item: 'All alarms configured and tested' },
+  { cat: 'Systems', item: 'Scheduling verified and operational' },
+  { cat: 'Systems', item: 'Trending configured for key points' },
+  { cat: 'Warranty', item: 'Warranty registration submitted' },
+  { cat: 'Warranty', item: 'Warranty period communicated to owner' },
+  { cat: 'Closeout', item: 'All issues in tracker marked Closed' },
+  { cat: 'Closeout', item: 'Client final sign-off obtained' },
+];
+
+async function seedPostCommChecklist(projId) {
+  if (!projId) return;
+  const existing = await listItems(LISTS.PostComm, `ProjectId eq '${projId}'`);
+  if (existing.length > 0) return;
+  for (const t of PC_TEMPLATE) {
+    await createItem(LISTS.PostComm, { ProjectId: projId, Category: t.cat, CheckItem: t.item, Completed: false });
+  }
+  postCommItems = await listItems(LISTS.PostComm, `ProjectId eq '${projId}'`);
+  renderPostComm();
+}
+
+// ══════════════════════════════════════════════════════════
+//  RENDER ALL
+// ══════════════════════════════════════════════════════════
+function renderAll() {
+  renderAllProjects();
+  renderDashboard();
+  renderIssues();
+  renderP2P();
+  renderSOO();
+  renderPostComm();
+}
+
+// ══════════════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════════════
+function renderDashboard() {
+  const open   = issues.filter(i => i.Status === 'Open').length;
+  const prog   = issues.filter(i => i.Status === 'In Progress' || i.Status === 'Assigned').length;
+  const pend   = issues.filter(i => i.Status === 'Pending Client Sign-Off').length;
+  const closed = issues.filter(i => i.Status === 'Closed').length;
+  const total  = issues.length;
+
+  document.getElementById('stat-open').textContent  = open;
+  document.getElementById('stat-prog').textContent  = prog;
+  document.getElementById('stat-pend').textContent  = pend;
+  document.getElementById('stat-done').textContent  = closed;
+  document.getElementById('stat-total').textContent = total;
+
+  const badge = document.getElementById('open-badge');
+  if (open > 0) { badge.textContent = open; badge.style.display = 'inline'; }
+  else badge.style.display = 'none';
+
+  // P2P progress
+  const done = p2pPoints.filter(p => p.Result === 'Pass' || p.Result === 'Fail').length;
+  const pass = p2pPoints.filter(p => p.Result === 'Pass').length;
+  const tot  = p2pPoints.length;
+  const pct  = tot ? Math.round(pass / tot * 100) : 0;
+  document.getElementById('p2p-pct').textContent = pct + '%';
+  const bar = document.getElementById('p2p-bar');
+  bar.style.width = pct + '%';
+  if (pct === 100) bar.classList.add('done'); else bar.classList.remove('done');
+  document.getElementById('p2p-summary').textContent = tot
+    ? `${pass} Pass · ${p2pPoints.filter(p=>p.Result==='Fail').length} Fail · ${tot - done} Pending — ${tot} total points`
+    : 'No P2P points loaded yet.';
+
+  // Recent issues
+  const recent = [...issues].sort((a,b) => new Date(b.Created||0) - new Date(a.Created||0)).slice(0, 5);
+  const el = document.getElementById('recent-issues-list');
+  el.innerHTML = recent.length ? recent.map(issueHTML).join('') : '<div class="empty-state"><div class="icon">✓</div><p>No issues yet.</p></div>';
+}
+
+// ══════════════════════════════════════════════════════════
+//  ISSUES
+// ══════════════════════════════════════════════════════════
+function issueHTML(i) {
+  const cats = (i.Category||'').split(',').filter(Boolean);
+  const tags = cats.map(c => `<span class="tag ${c.trim()}">${c.trim()}</span>`).join('');
+  const prio = `<span class="tag prio-${i.Priority}">${i.Priority||'?'}</span>`;
+  const dot  = (i.Status||'Open').replace(/ /g,'-');
+  const warranty = i.IsWarranty === 'Yes' ? '<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px">⚑ Warranty</span>' : '';
+  return `<div class="issue-item" onclick="openDetail('${i.id}')">
+    <div class="issue-dot ${dot}"></div>
+    <div class="issue-info">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:1px">
+        ${i.IssueNumber ? `<span style="font-size:10px;font-weight:700;color:var(--steel)">${esc(i.IssueNumber)}</span>` : ''}
+        <div class="issue-title" style="flex:1">${esc(i.Title2||i.Title||'Untitled')}</div>
+      </div>
+      <div class="issue-meta">${esc(i.Equipment||'')} ${i.AssignedTo ? '· ' + esc(i.AssignedTo) : ''} · ${fmtDate(i.Created)}</div>
+      <div class="issue-tags">${tags}${prio}<span class="status-badge ${dot}">${i.Status||'Open'}</span>${warranty}</div>
+    </div>
+  </div>`;
+}
+
+function renderIssues() {
+  const search = (document.getElementById('issue-search')?.value||'').toLowerCase();
+  const fStat  = document.getElementById('filter-status')?.value||'';
+  const fCat   = document.getElementById('filter-cat')?.value||'';
+
+  let list = [...issues];
+  if (search) list = list.filter(i => (i.Title2||i.Title||'').toLowerCase().includes(search) || (i.Description||'').toLowerCase().includes(search));
+  if (fStat)  list = list.filter(i => i.Status === fStat);
+  if (fCat)   list = list.filter(i => (i.Category||'').includes(fCat));
+
+  list.sort((a,b) => {
+    const pmap = { Critical:0, High:1, Medium:2, Low:3 };
+    return (pmap[a.Priority]||2) - (pmap[b.Priority]||2);
+  });
+
+  document.getElementById('issues-list').innerHTML = list.length
+    ? list.map(issueHTML).join('')
+    : '<div class="empty-state"><div class="icon">✓</div><p>No issues match the current filters.</p></div>';
+}
+
+// ══════════════════════════════════════════════════════════
+//  ISSUE DETAIL
+// ══════════════════════════════════════════════════════════
+function openDetail(issueId) {
+  const i = issues.find(x => x.id === issueId);
+  if (!i) return;
+  const logs = activityLog.filter(l => l.IssueId === issueId);
+  const dot  = (i.Status||'Open').replace(/ /g,'-');
+  const photoLogs = logs.filter(l => l.Action && l.Action.includes('📷'));
+  const timeLogs  = logs.filter(l => l.Action && l.Action.includes('⏱'));
+  const totalHrs  = timeLogs.reduce((sum, l) => {
+    const m = (l.Action||'').match(/(\d+\.?\d*)h/);
+    return sum + (m ? parseFloat(m[1]) : 0);
+  }, 0);
+
+  // Collect photo URLs from activity log notes
+  const photoUrls = photoLogs.flatMap(l => (l.Note||'').split('\n').filter(u => u.startsWith('http')));
+
+  document.getElementById('detail-content').innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px">
+      <div style="flex:1">
+        ${i.IssueNumber ? `<div style="font-size:11px;font-weight:700;color:var(--steel);letter-spacing:.5px;margin-bottom:4px">${esc(i.IssueNumber)}</div>` : ''}
+        <h2 style="font-size:17px;margin-bottom:6px;line-height:1.3">${esc(i.Title2||i.Title||'Untitled')}</h2>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span class="status-badge ${dot}">${i.Status||'Open'}</span>
+          <span class="tag prio-${i.Priority}">${i.Priority}</span>
+          ${i.IsWarranty === 'Yes' ? '<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase">⚑ Warranty</span>' : ''}
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="form-row" style="margin-bottom:8px">
+        <div><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Equipment</span><div style="margin-top:3px;font-weight:600">${esc(i.Equipment||'—')}</div></div>
+        <div><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Controller</span><div style="margin-top:3px;font-weight:600">${esc(i.Controller||'—')}</div></div>
+      </div>
+      <div class="form-row" style="margin-bottom:8px">
+        <div><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Network Address</span><div style="margin-top:3px">${esc(i.NetworkAddress||'—')}</div></div>
+        <div><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Drawing Ref</span><div style="margin-top:3px">${esc(i.DrawingRef||'—')}</div></div>
+      </div>
+      <div class="form-row" style="margin-bottom:8px">
+        <div><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Assigned To</span><div style="margin-top:3px">${esc(i.AssignedTo||'Unassigned')}</div></div>
+        <div><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Target Date</span><div style="margin-top:3px">${fmtDate(i.TargetDate)}</div></div>
+      </div>
+      <div style="margin-bottom:8px"><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Description</span><div style="margin-top:4px;line-height:1.5;font-size:13px">${esc(i.Description||'No description provided.')}</div></div>
+      ${i.ResolutionNotes ? `<div style="margin-bottom:8px"><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Resolution Notes</span><div style="margin-top:4px;line-height:1.5;font-size:13px;background:#f0fdf4;padding:8px;border-radius:6px">${esc(i.ResolutionNotes)}</div></div>` : ''}
+      ${totalHrs > 0 ? `<div style="margin-bottom:8px;background:#eff6ff;border-radius:6px;padding:8px 12px;font-size:12px;color:var(--steel);font-weight:600">⏱ ${totalHrs.toFixed(1)}h logged in Knowify</div>` : ''}
+      ${i.CxAVerifiedBy ? `<div class="signoff-block"><h4>CxA Verified</h4><div class="sig-row"><span>${esc(i.CxAVerifiedBy)}</span></div></div>` : ''}
+      ${i.ClientSignOffBy ? `<div class="signoff-block"><h4>Client Sign-Off</h4><div class="sig-row"><span>${esc(i.ClientSignOffBy)}</span><span>${fmtDate(i.ClientSignOffDate)}</span></div></div>` : ''}
+    </div>
+
+    ${photoUrls.length ? `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Photos (${photoUrls.length})</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${photoUrls.map(url => `<a href="${url}" target="_blank"><img src="${url}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1.5px solid var(--border)"></a>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="divider"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn btn-primary btn-sm" onclick="openStatusModal('${issueId}')">Update Status</button>
+      <button class="btn btn-ghost btn-sm" onclick="openAddPhotoModal('${issueId}')">📷 Add Photo</button>
+      <button class="btn btn-ghost btn-sm" onclick="openKnowifyModal('${issueId}')">⏱ Log Time</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleWarranty('${issueId}')" style="${i.IsWarranty==='Yes'?'border-color:var(--amber);color:var(--amber)':''}">⚑ ${i.IsWarranty==='Yes'?'Remove Warranty':'Mark Warranty'}</button>
+      ${i.Status === 'Resolved' && !i.CxAVerifiedBy ? `<button class="btn btn-success btn-sm" onclick="cxaVerify('${issueId}')">CxA Verify ✓</button>` : ''}
+      ${i.Status === 'Pending Client Sign-Off' && !i.ClientSignOffBy ? `<button class="btn btn-amber btn-sm" onclick="clientSignOff('${issueId}')">Client Sign-Off ✓</button>` : ''}
+    </div>
+    <div class="activity-log">
+      <h4>Activity Log</h4>
+      ${logs.length ? logs.map(l => `
+        <div class="log-entry">
+          <div class="log-avatar">${(l.UserName||'?')[0].toUpperCase()}</div>
+          <div class="log-body">
+            <div class="log-action">${esc(l.Action||'')}</div>
+            <div class="log-time">${esc(l.UserName||'')} · ${fmtDate(l.Created)}</div>
+            ${l.Note && !l.Note.startsWith('http') ? `<div class="log-note">${esc(l.Note)}</div>` : ''}
+          </div>
+        </div>`).join('') : '<div style="font-size:12px;color:var(--muted)">No activity yet.</div>'}
+    </div>
+  `;
+  openModal('modal-detail');
+}
+
+function openStatusModal(issueId) {
+  const i = issues.find(x => x.id === issueId);
+  if (!i) return;
+  document.getElementById('new-status').value = i.Status || 'Open';
+  document.getElementById('status-note').value = '';
+  document.getElementById('status-issue-id').value = issueId;
+  closeModal('modal-detail');
+  openModal('modal-status');
+}
+
+async function commitStatusUpdate() {
+  const issueId = document.getElementById('status-issue-id').value;
+  const status  = document.getElementById('new-status').value;
+  const note    = document.getElementById('status-note').value.trim();
+  if (!note) { showToast('Note is required.'); return; }
+
+  const i = issues.find(x => x.id === issueId);
+  const fields = { Status: status };
+  if (status === 'Resolved') fields.ResolvedBy = currentUser?.displayName || 'Unknown';
+
+  await saveWithFallback(() => updateItem(LISTS.Issues, issueId, fields));
+  await saveWithFallback(() => createItem(LISTS.ActivityLog, {
+    IssueId: issueId, Action: `Status → ${status}`, Note: note,
+    UserName: currentUser?.displayName || 'Unknown'
+  }));
+
+  i.Status = status;
+  if (fields.ResolvedBy) i.ResolvedBy = fields.ResolvedBy;
+
+  closeModal('modal-status');
+  showToast('Status updated ✓');
+  renderAll();
+}
+
+async function cxaVerify(issueId) {
+  const name = currentUser?.displayName || 'CxA';
+  await saveWithFallback(() => updateItem(LISTS.Issues, issueId, { CxAVerifiedBy: name, Status: 'Pending Client Sign-Off' }));
+  await saveWithFallback(() => createItem(LISTS.ActivityLog, { IssueId: issueId, Action: 'CxA Verified', UserName: name }));
+  const i = issues.find(x => x.id === issueId);
+  i.CxAVerifiedBy = name; i.Status = 'Pending Client Sign-Off';
+  closeModal('modal-detail');
+  showToast('CxA verification recorded ✓');
+  renderAll();
+}
+
+async function clientSignOff(issueId) {
+  const name = prompt('Enter client name / representative:');
+  if (!name) return;
+  const today = new Date().toISOString().split('T')[0];
+  await saveWithFallback(() => updateItem(LISTS.Issues, issueId, { ClientSignOffBy: name, ClientSignOffDate: today, Status: 'Closed' }));
+  await saveWithFallback(() => createItem(LISTS.ActivityLog, { IssueId: issueId, Action: 'Client Sign-Off', Note: `Signed off by ${name}`, UserName: currentUser?.displayName||'Unknown' }));
+  const i = issues.find(x => x.id === issueId);
+  i.ClientSignOffBy = name; i.ClientSignOffDate = today; i.Status = 'Closed';
+  closeModal('modal-detail');
+  showToast('Client sign-off recorded ✓');
+  renderAll();
+}
+
+// ══════════════════════════════════════════════════════════
+//  NEW ISSUE
+// ══════════════════════════════════════════════════════════
+function openNewIssueModal() {
+  if (!currentProject) { showToast('Select a project first.'); return; }
+  pendingPhotos = [];
+  document.getElementById('ni-title').value = '';
+  document.getElementById('ni-desc').value = '';
+  document.getElementById('ni-equipment').value = '';
+  document.getElementById('ni-controller').value = '';
+  document.getElementById('ni-network').value = '';
+  document.getElementById('ni-drawing').value = '';
+  document.getElementById('ni-assigned').value = '';
+  document.getElementById('ni-priority').value = 'Medium';
+  document.getElementById('ni-target').value = '';
+  document.getElementById('ni-photo-preview').innerHTML = '';
+  document.querySelectorAll('#modal-issue input[type=checkbox]').forEach(c => { c.checked = false; c.closest('.check-item').classList.remove('checked'); });
+  openModal('modal-issue');
+}
+
+async function saveIssue() {
+  const title = document.getElementById('ni-title').value.trim();
+  if (!title) { showToast('Title is required.'); return; }
+  const cats = [...document.querySelectorAll('#modal-issue input[type=checkbox]:checked')].map(c => c.value).join(',');
+  const issueNumber = generateIssueNumber(currentProject.id);
+
+  const fields = {
+    Title: title, Title2: title,
+    IssueNumber: issueNumber,
+    ProjectId: currentProject.id,
+    Category: cats,
+    Priority: document.getElementById('ni-priority').value,
+    Status: 'Open',
+    Equipment: document.getElementById('ni-equipment').value,
+    Controller: document.getElementById('ni-controller').value,
+    NetworkAddress: document.getElementById('ni-network').value,
+    DrawingRef: document.getElementById('ni-drawing').value,
+    Description: document.getElementById('ni-desc').value,
+    AssignedTo: document.getElementById('ni-assigned').value,
+    TargetDate: document.getElementById('ni-target').value || null,
+    ReportedBy: currentUser?.displayName || 'Unknown'
+  };
+
+  // auto-route
+  if (!fields.AssignedTo) {
+    if (cats.includes('Physical')) fields.AssignedTo = 'Field Technician';
+    else if (cats.includes('Software') || cats.includes('SOO')) fields.AssignedTo = 'Controls Engineer';
+    if (fields.AssignedTo) fields.Status = 'Assigned';
+  }
+
+  const newItem = await saveWithFallback(() => createItem(LISTS.Issues, fields));
+  if (newItem) {
+    issues.push({ id: newItem.id, ...fields, Created: new Date().toISOString() });
+    await createItem(LISTS.ActivityLog, { IssueId: newItem.id, Action: 'Issue Created', UserName: fields.ReportedBy });
+    // Upload any pending photos
+    if (pendingPhotos.length) {
+      const uploaded = await uploadPhotosToSharePoint(newItem.id, issueNumber);
+      if (uploaded.length) {
+        await createItem(LISTS.ActivityLog, { IssueId: newItem.id, Action: `📷 ${uploaded.length} photo${uploaded.length>1?'s':''} attached`, Note: uploaded.map(u=>u.url).join('\n'), UserName: fields.ReportedBy });
+      }
+    }
+  }
+
+  pendingPhotos = [];
+  document.getElementById('ni-photo-preview').innerHTML = '';
+  closeModal('modal-issue');
+  showToast(`Issue ${issueNumber} logged ✓`);
+  renderAll();
+}
+
+// ══════════════════════════════════════════════════════════
+//  P2P CHECKOUT
+// ══════════════════════════════════════════════════════════
+function renderP2P() {
+  const fSys = document.getElementById('p2p-filter-sys')?.value || '';
+  const fPF  = document.getElementById('p2p-filter-pf')?.value  || '';
+
+  let list = [...p2pPoints];
+  if (fSys) list = list.filter(p => p.System === fSys);
+  if (fPF)  list = list.filter(p => p.Result === fPF);
+
+  // update system filter
+  const systems = [...new Set(p2pPoints.map(p => p.System).filter(Boolean))];
+  const sysEl = document.getElementById('p2p-filter-sys');
+  if (sysEl) {
+    const cur = sysEl.value;
+    sysEl.innerHTML = '<option value="">All Systems</option>' + systems.map(s => `<option ${s===cur?'selected':''}>${s}</option>`).join('');
+  }
+
+  // progress
+  const pass = p2pPoints.filter(p => p.Result === 'Pass').length;
+  const tot  = p2pPoints.length;
+  const pct  = tot ? Math.round(pass / tot * 100) : 0;
+  document.getElementById('p2p-pct2').textContent = pct + '%';
+  document.getElementById('p2p-label2').textContent = `${pass} / ${tot} points passed`;
+  const bar2 = document.getElementById('p2p-bar2');
+  bar2.style.width = pct + '%';
+  if (pct === 100) bar2.classList.add('done'); else bar2.classList.remove('done');
+
+  const tbody = document.getElementById('p2p-tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No P2P points yet. Add points or paste from your Excel schedule.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(p => {
+    const rowCls = p.Result === 'Pass' ? 'pass-row' : p.Result === 'Fail' ? 'fail-row' : '';
+    return `<tr class="${rowCls}">
+      <td style="font-weight:600">${esc(p.PointName||'')}</td>
+      <td>${esc(p.PointType||'')}</td>
+      <td>${esc(p.Controller||'')}</td>
+      <td style="font-size:12px;color:var(--muted)">${esc(p.NetworkAddress||'')}</td>
+      <td style="font-size:12px;color:var(--muted)">${esc(p.DrawingRef||'')}</td>
+      <td>
+        <div style="display:flex;gap:5px">
+          <button class="pf-btn pass ${p.Result==='Pass'?'active':''}" onclick="setP2PResult('${p.id}','Pass')">PASS</button>
+          <button class="pf-btn fail ${p.Result==='Fail'?'active':''}" onclick="setP2PResult('${p.id}','Fail')">FAIL</button>
+        </div>
+      </td>
+      <td style="font-size:12px">${esc(p.TechInitials||'')}</td>
+      <td style="font-size:11px;color:var(--muted)">${p.CheckedAt ? fmtDate(p.CheckedAt) : ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function setP2PResult(pointId, result) {
+  const initials = prompt(`Your initials (${result})?`) || currentUser?.displayName?.split(' ').map(w=>w[0]).join('') || '?';
+  const now = new Date().toISOString();
+  await saveWithFallback(() => updateItem(LISTS.P2P, pointId, { Result: result, TechInitials: initials, CheckedAt: now }));
+  const p = p2pPoints.find(x => x.id === pointId);
+  if (p) { p.Result = result; p.TechInitials = initials; p.CheckedAt = now; }
+  renderP2P();
+  renderDashboard();
+  showToast(`Point marked ${result} ✓`);
+  // if fail, offer to create issue
+  if (result === 'Fail') {
+    const pt = p2pPoints.find(x => x.id === pointId);
+    if (confirm(`Create an issue for failed point "${pt?.PointName}"?`)) {
+      issues.push({ id: 'tmp-'+Date.now(), Title2: `P2P Fail: ${pt?.PointName}`, Category: 'P2P', Priority: 'High', Status: 'Open', Equipment: pt?.System, Controller: pt?.Controller, NetworkAddress: pt?.NetworkAddress, DrawingRef: pt?.DrawingRef, ProjectId: currentProject?.id, Created: now });
+      await saveWithFallback(() => createItem(LISTS.Issues, { Title: `P2P Fail: ${pt?.PointName}`, Title2: `P2P Fail: ${pt?.PointName}`, Category: 'P2P', Priority: 'High', Status: 'Open', Equipment: pt?.System, Controller: pt?.Controller, NetworkAddress: pt?.NetworkAddress, DrawingRef: pt?.DrawingRef, ProjectId: currentProject?.id, ReportedBy: currentUser?.displayName||'Unknown' }));
+      renderAll();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  P2P EXCEL IMPORT
+// ══════════════════════════════════════════════════════════
+
+// Known column name aliases for auto-mapping
+const P2P_COL_ALIASES = {
+  PointName:       ['point name', 'point', 'description', 'tag name', 'point description', 'name'],
+  PointType:       ['point type', 'type', 'io type', 'signal type', 'i/o type', 'i/o'],
+  System:          ['system', 'equipment', 'system / equipment', 'system/equipment', 'equip', 'unit', 'device'],
+  Controller:      ['controller', 'controller id', 'panel', 'panel id', 'ddc', 'controller tag', 'ctrl'],
+  NetworkAddress:  ['network address', 'network', 'address', 'bacnet address', 'device address', 'ip address', 'mac', 'device instance', 'bacnet id', 'obj'],
+  DrawingRef:      ['drawing reference', 'drawing ref', 'drawing', 'sheet', 'dwg', 'sheet no', 'drawing no', 'ref'],
+  ExpectedSignal:  ['expected signal', 'expected', 'signal', 'range', 'signal type', 'engineering units', 'units', 'signal range'],
+  Notes:           ['notes', 'note', 'comments', 'comment', 'remarks', 'special instructions'],
+};
+
+// State for import workflow
+let p2pParsedData    = null;   // raw rows from SheetJS
+let p2pExcelHeaders  = [];     // header row from Excel
+let p2pColMapping    = {};     // { appField: excelColIndex }
+let p2pActiveSheet   = null;
+
+function openP2PImportModal() {
+  if (!currentProject) { showToast('Select a project first.'); return; }
+  resetP2PImport();
+  openModal('modal-p2p-import');
+}
+
+function resetP2PImport() {
+  p2pParsedData   = null;
+  p2pExcelHeaders = [];
+  p2pColMapping   = {};
+  p2pActiveSheet  = null;
+  document.getElementById('p2p-file-input').value = '';
+  document.getElementById('p2p-mapping-section').style.display  = 'none';
+  document.getElementById('p2p-preview-section').style.display  = 'none';
+  document.getElementById('p2p-parse-loading').style.display    = 'none';
+  document.getElementById('p2p-import-btn').style.display       = 'none';
+  document.getElementById('p2p-import-warn').style.display      = 'none';
+  const dz = document.getElementById('p2p-dropzone');
+  dz.style.borderColor = 'var(--border)';
+  dz.style.background  = '';
+}
+
+function handleP2PDrop(event) {
+  event.preventDefault();
+  const dz = document.getElementById('p2p-dropzone');
+  dz.style.borderColor = 'var(--border)';
+  dz.style.background  = '';
+  const file = event.dataTransfer.files[0];
+  if (file) processP2PFile(file);
+}
+
+function handleP2PFileSelect(input) {
+  const file = input.files[0];
+  if (file) processP2PFile(file);
+}
+
+function processP2PFile(file) {
+  if (!file.name.match(/\.(xlsx|xls)$/i)) {
+    showToast('Please upload an .xlsx or .xls file.');
+    return;
+  }
+  document.getElementById('p2p-parse-loading').style.display   = 'block';
+  document.getElementById('p2p-mapping-section').style.display = 'none';
+  document.getElementById('p2p-import-btn').style.display      = 'none';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data   = new Uint8Array(e.target.result);
+      const wb_xl  = XLSX.read(data, { type: 'array' });
+
+      // Find the best sheet — prefer "P2P Schedule" if present
+      let sheetName = wb_xl.SheetNames[0];
+      const preferred = wb_xl.SheetNames.find(n =>
+        n.toLowerCase().includes('p2p') ||
+        n.toLowerCase().includes('point') ||
+        n.toLowerCase().includes('schedule') ||
+        n.toLowerCase().includes('checkout')
+      );
+      if (preferred) sheetName = preferred;
+      p2pActiveSheet = sheetName;
+
+      const ws_xl = wb_xl.Sheets[sheetName];
+
+      // Convert to array of arrays; raw:false gives formatted strings
+      const rows = XLSX.utils.sheet_to_json(ws_xl, { header: 1, defval: '' });
+
+      // Find the header row — first row where we find ≥3 non-empty cells
+      // and at least one matches a known field name
+      let headerRowIdx = -1;
+      const allAliases = Object.values(P2P_COL_ALIASES).flat();
+      for (let i = 0; i < Math.min(rows.length, 15); i++) {
+        const row = rows[i];
+        const nonEmpty = row.filter(c => String(c).trim().length > 0);
+        if (nonEmpty.length < 2) continue;
+        const hasKnown = row.some(c =>
+          allAliases.includes(String(c).toLowerCase().trim())
+        );
+        if (hasKnown) { headerRowIdx = i; break; }
+      }
+      if (headerRowIdx === -1) {
+        // Fall back: first row with ≥3 non-empty cells
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+          if (rows[i].filter(c => String(c).trim()).length >= 3) {
+            headerRowIdx = i;
+            break;
+          }
+        }
+      }
+      if (headerRowIdx === -1) {
+        showToast('Could not find a header row. Check the file format.');
+        document.getElementById('p2p-parse-loading').style.display = 'none';
+        return;
+      }
+
+      p2pExcelHeaders = rows[headerRowIdx].map(h => String(h).trim());
+
+      // Data rows = everything after header that has a non-empty first meaningful column
+      p2pParsedData = rows.slice(headerRowIdx + 1).filter(row => {
+        const vals = row.map(c => String(c).trim());
+        const nonEmpty = vals.filter(Boolean);
+        // Skip section-label rows (merged cells show only 1 value, rest empty)
+        // Skip entirely empty rows
+        return nonEmpty.length >= 2;
+      });
+
+      // Auto-map columns
+      p2pColMapping = {};
+      p2pExcelHeaders.forEach((hdr, idx) => {
+        const lower = hdr.toLowerCase().trim();
+        Object.entries(P2P_COL_ALIASES).forEach(([field, aliases]) => {
+          if (!p2pColMapping[field] && aliases.includes(lower)) {
+            p2pColMapping[field] = idx;
+          }
+        });
+      });
+
+      document.getElementById('p2p-parse-loading').style.display   = 'none';
+      document.getElementById('p2p-mapping-section').style.display = 'block';
+      document.getElementById('p2p-sheet-name').textContent        = sheetName;
+      renderColumnMapping();
+      renderP2PPreview();
+    } catch(err) {
+      document.getElementById('p2p-parse-loading').style.display = 'none';
+      showToast('Error reading file: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderColumnMapping() {
+  const fields = Object.keys(P2P_COL_ALIASES);
+  const required = ['PointName'];
+  const labels = {
+    PointName:      'Point Name ✱',
+    PointType:      'Point Type',
+    System:         'System / Equipment',
+    Controller:     'Controller ID',
+    NetworkAddress: 'Network Address',
+    DrawingRef:     'Drawing Reference',
+    ExpectedSignal: 'Expected Signal',
+    Notes:          'Notes',
+  };
+
+  document.getElementById('p2p-column-map').innerHTML = fields.map(field => {
+    const mapped = p2pColMapping[field] !== undefined ? p2pColMapping[field] : '';
+    const opts = p2pExcelHeaders.map((h, i) =>
+      `<option value="${i}" ${parseInt(mapped)===i?'selected':''}>${h||'(col '+(i+1)+')'}</option>`
+    ).join('');
+    const isReq = required.includes(field);
+    return `<div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;font-weight:700;color:${isReq?'var(--steel)':'var(--muted)'};text-transform:uppercase;letter-spacing:.3px">${labels[field]}</label>
+      <select onchange="p2pColMapping['${field}']=this.value===''?undefined:parseInt(this.value);renderP2PPreview()"
+        style="padding:6px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;background:#fff">
+        <option value="">— skip —</option>
+        ${opts}
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function renderP2PPreview() {
+  if (!p2pParsedData || !p2pParsedData.length) return;
+
+  const preview = p2pParsedData.slice(0, 5);
+  const fields  = ['PointName','PointType','System','Controller','NetworkAddress','DrawingRef'];
+  const labels  = ['Point Name','Type','System','Controller','Network Addr.','Drawing Ref.'];
+
+  // Build preview table
+  let thead = '<tr>' + labels.map(l =>
+    `<th style="background:var(--navy);color:#fff;padding:5px 8px;font-size:10px;font-weight:700;text-align:left;white-space:nowrap">${l}</th>`
+  ).join('') + '</tr>';
+
+  let tbody = preview.map((row, ri) => {
+    const cells = fields.map(f => {
+      const idx = p2pColMapping[f];
+      const val = idx !== undefined ? String(row[idx]||'') : '—';
+      return `<td style="padding:5px 8px;font-size:11px;border-bottom:1px solid var(--border);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${esc(val)}">${esc(val)||'<span style="color:var(--muted)">—</span>'}</td>`;
+    }).join('');
+    return `<tr style="background:${ri%2===0?'#f8fafc':'#fff'}">${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('p2p-preview-table').innerHTML = `<thead>${thead}</thead><tbody>${tbody}</tbody>`;
+  document.getElementById('p2p-preview-section').style.display = 'block';
+
+  // Count valid rows (must have PointName)
+  const pnIdx = p2pColMapping['PointName'];
+  const validRows = pnIdx !== undefined
+    ? p2pParsedData.filter(r => String(r[pnIdx]||'').trim().length > 0)
+    : [];
+
+  document.getElementById('p2p-import-count').textContent =
+    `${validRows.length} point${validRows.length!==1?'s':''} ready to import from ${p2pParsedData.length} rows`;
+
+  // Warnings
+  const warnEl = document.getElementById('p2p-import-warn');
+  const warnings = [];
+  if (pnIdx === undefined) warnings.push('⚠ Point Name column not mapped — required field');
+  if (p2pColMapping['PointType'] === undefined) warnings.push('⚠ Point Type not mapped — will be left blank');
+  if (warnings.length) {
+    warnEl.textContent = warnings.join('  |  ');
+    warnEl.style.display = 'block';
+  } else {
+    warnEl.style.display = 'none';
+  }
+
+  // Show import button only if we have at least 1 valid row
+  document.getElementById('p2p-import-btn').style.display = validRows.length > 0 ? 'block' : 'none';
+}
+
+async function importP2PFromExcel() {
+  const pnIdx = p2pColMapping['PointName'];
+  if (pnIdx === undefined) { showToast('Map the Point Name column first.'); return; }
+
+  const validRows = p2pParsedData.filter(r => String(r[pnIdx]||'').trim().length > 0);
+  if (!validRows.length) { showToast('No valid rows found.'); return; }
+
+  closeModal('modal-p2p-import');
+  showToast(`Importing ${validRows.length} points…`);
+
+  let imported = 0;
+  let skipped  = 0;
+
+  for (const row of validRows) {
+    const getVal = (field) => {
+      const idx = p2pColMapping[field];
+      return idx !== undefined ? String(row[idx]||'').trim() : '';
+    };
+
+    const pointName = getVal('PointName');
+    if (!pointName) { skipped++; continue; }
+
+    // Normalize Point Type
+    let ptype = getVal('PointType').toUpperCase().replace(/[^AIDO]/g,'');
+    if (!['AI','AO','DI','DO'].includes(ptype)) ptype = '';
+
+    const fields = {
+      ProjectId:      currentProject.id,
+      PointName:      pointName,
+      PointType:      ptype,
+      System:         getVal('System'),
+      Controller:     getVal('Controller'),
+      NetworkAddress: getVal('NetworkAddress'),
+      DrawingRef:     getVal('DrawingRef'),
+      ExpectedSignal: getVal('ExpectedSignal'),
+      Notes:          getVal('Notes'),
+      Result:         '',
+    };
+
+    const r = await saveWithFallback(() => createItem(LISTS.P2P, fields));
+    if (r) {
+      p2pPoints.push({ id: r.id, ...fields });
+      imported++;
+    }
+  }
+
+  resetP2PImport();
+
+  // Show success banner
+  const banner  = document.getElementById('p2p-import-banner');
+  const msg     = document.getElementById('p2p-import-msg');
+  const dupeNote = skipped > 0 ? ` (${skipped} row${skipped>1?'s':''} skipped — missing point name)` : '';
+  msg.innerHTML = `<strong>${imported} point${imported!==1?'s':''} imported successfully</strong> from your Excel schedule.${dupeNote} You can now complete Pass/Fail for each point below.`;
+  banner.style.display = 'block';
+
+  renderP2P();
+  renderDashboard();
+  showToast(`${imported} points imported ✓`);
+}
+
+function openAddP2PModal() {
+  if (!currentProject) { showToast('Select a project first.'); return; }
+  ['p2p-name','p2p-system','p2p-ctrl','p2p-addr','p2p-draw'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('p2p-type').value = 'AI';
+  openModal('modal-p2p');
+}
+
+async function saveP2PPoint() {
+  const name = document.getElementById('p2p-name').value.trim();
+  if (!name) { showToast('Point name required.'); return; }
+  const fields = {
+    ProjectId: currentProject.id,
+    PointName: name,
+    PointType: document.getElementById('p2p-type').value,
+    System: document.getElementById('p2p-system').value,
+    Controller: document.getElementById('p2p-ctrl').value,
+    NetworkAddress: document.getElementById('p2p-addr').value,
+    DrawingRef: document.getElementById('p2p-draw').value,
+    Result: ''
+  };
+  const r = await saveWithFallback(() => createItem(LISTS.P2P, fields));
+  if (r) p2pPoints.push({ id: r.id, ...fields });
+  closeModal('modal-p2p');
+  showToast('Point added ✓');
+  renderP2P();
+}
+
+// ══════════════════════════════════════════════════════════
+//  SOO
+// ══════════════════════════════════════════════════════════
+let seqStepCount = 0;
+
+function openAddSeqModal() {
+  if (!currentProject) { showToast('Select a project first.'); return; }
+  document.getElementById('seq-name').value = '';
+  document.getElementById('seq-equip').value = '';
+  document.getElementById('seq-steps-list').innerHTML = '';
+  seqStepCount = 0;
+  addSeqStep();
+  openModal('modal-seq');
+}
+
+function addSeqStep() {
+  seqStepCount++;
+  const div = document.createElement('div');
+  div.style = 'display:flex;gap:8px;margin-bottom:8px;align-items:center';
+  div.innerHTML = `
+    <span style="font-size:12px;font-weight:700;color:var(--muted);min-width:22px">${seqStepCount}.</span>
+    <input type="text" placeholder="Step description…" class="seq-step-input" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px">
+  `;
+  document.getElementById('seq-steps-list').appendChild(div);
+}
+
+async function saveSequence() {
+  const name  = document.getElementById('seq-name').value.trim();
+  const equip = document.getElementById('seq-equip').value.trim();
+  if (!name) { showToast('Sequence name required.'); return; }
+  const steps = [...document.querySelectorAll('.seq-step-input')].map(i => i.value.trim()).filter(Boolean);
+  if (!steps.length) { showToast('Add at least one step.'); return; }
+
+  const seqR = await saveWithFallback(() => createItem(LISTS.Sequences, { ProjectId: currentProject.id, SeqName: name, Equipment: equip, Status: 'In Progress' }));
+  const seqId = seqR?.id || 'tmp-'+Date.now();
+  const stepObjs = [];
+  for (let i = 0; i < steps.length; i++) {
+    const sr = await saveWithFallback(() => createItem(LISTS.SOOSteps, { ProjectId: currentProject.id, SequenceId: seqId, StepNum: i+1, StepDesc: steps[i], ExpectedBehavior: '' }));
+    stepObjs.push({ id: sr?.id||'tmp-'+i, StepNum: i+1, StepDesc: steps[i], Result: '', ObservedBehavior: '' });
+  }
+  sequences.push({ id: seqId, SeqName: name, Equipment: equip, Status: 'In Progress', steps: stepObjs });
+  closeModal('modal-seq');
+  showToast('Sequence created ✓');
+  renderSOO();
+}
+
+function renderSOO() {
+  const el = document.getElementById('soo-list');
+  if (!sequences.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">≡</div><p>No sequences defined yet. Add a sequence to begin SOO verification.</p></div>';
+    return;
+  }
+  el.innerHTML = sequences.map(seq => {
+    const steps = seq.steps || [];
+    const passed = steps.filter(s => s.Result === 'Pass').length;
+    const pct = steps.length ? Math.round(passed/steps.length*100) : 0;
+    const allPass = pct === 100 && steps.length > 0;
+    return `
+      <div class="soo-seq">
+        <div class="soo-seq-header" onclick="toggleSeq('${seq.id}')">
+          <h3>${esc(seq.SeqName||'')} ${seq.Equipment ? '— '+esc(seq.Equipment) : ''}</h3>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:12px;color:rgba(255,255,255,.7)">${passed}/${steps.length} steps</span>
+            <span class="status-badge ${allPass?'Closed':'In-Progress'}">${allPass?'VERIFIED':'IN PROGRESS'}</span>
+          </div>
+        </div>
+        <div class="soo-steps" id="soo-steps-${seq.id}">
+          ${steps.map(s => `
+            <div class="soo-step">
+              <div class="soo-step-num">${s.StepNum}.</div>
+              <div class="soo-step-body">
+                <div class="desc">${esc(s.StepDesc||'')}</div>
+                ${s.ExpectedBehavior ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">Expected: ${esc(s.ExpectedBehavior)}</div>` : ''}
+                <input type="text" placeholder="Observed behavior…" value="${esc(s.ObservedBehavior||'')}"
+                  onchange="updateSOOObserved('${seq.id}','${s.id}',this.value)"
+                  style="width:100%;padding:6px 9px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;margin-top:5px">
+                <div class="soo-pf">
+                  <button class="pf-btn pass ${s.Result==='Pass'?'active':''}" onclick="setSOOResult('${seq.id}','${s.id}','Pass')">PASS</button>
+                  <button class="pf-btn fail ${s.Result==='Fail'?'active':''}" onclick="setSOOResult('${seq.id}','${s.id}','Fail')">FAIL</button>
+                  ${s.VerifiedBy ? `<span style="font-size:11px;color:var(--muted);margin-left:6px">by ${esc(s.VerifiedBy)}</span>` : ''}
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleSeq(seqId) {
+  const el = document.getElementById('soo-steps-' + seqId);
+  if (el) el.classList.toggle('open');
+}
+
+async function setSOOResult(seqId, stepId, result) {
+  const seq  = sequences.find(s => s.id === seqId);
+  const step = seq?.steps?.find(s => s.id === stepId);
+  if (!step) return;
+  step.Result = result;
+  step.VerifiedBy = currentUser?.displayName || 'Unknown';
+  await saveWithFallback(() => updateItem(LISTS.SOOSteps, stepId, { Result: result, VerifiedBy: step.VerifiedBy }));
+  // check if all pass
+  const allPass = seq.steps.every(s => s.Result === 'Pass');
+  if (allPass) {
+    seq.Status = 'Verified';
+    await saveWithFallback(() => updateItem(LISTS.Sequences, seqId, { Status: 'Verified' }));
+    showToast(`Sequence "${seq.SeqName}" fully verified ✓`);
+  }
+  // if fail, offer issue
+  if (result === 'Fail') {
+    if (confirm(`Create an issue for failed SOO step "${step.StepDesc?.substring(0,40)}"?`)) {
+      const fields = { Title: `SOO Fail: ${step.StepDesc?.substring(0,50)}`, Title2: `SOO Fail: ${step.StepDesc?.substring(0,50)}`, Category: 'SOO', Priority: 'High', Status: 'Open', ProjectId: currentProject?.id, ReportedBy: currentUser?.displayName||'Unknown' };
+      const r = await saveWithFallback(() => createItem(LISTS.Issues, fields));
+      if (r) issues.push({ id: r.id, ...fields, Created: new Date().toISOString() });
+      renderAll();
+    }
+  }
+  renderSOO();
+}
+
+async function updateSOOObserved(seqId, stepId, val) {
+  const seq  = sequences.find(s => s.id === seqId);
+  const step = seq?.steps?.find(s => s.id === stepId);
+  if (!step) return;
+  step.ObservedBehavior = val;
+  await saveWithFallback(() => updateItem(LISTS.SOOSteps, stepId, { ObservedBehavior: val }));
+}
+
+// ══════════════════════════════════════════════════════════
+//  POST-COMM
+// ══════════════════════════════════════════════════════════
+function renderPostComm() {
+  const done = postCommItems.filter(p => p.Completed).length;
+  const tot  = postCommItems.length;
+  const pct  = tot ? Math.round(done/tot*100) : 0;
+  document.getElementById('pc-pct').textContent = pct + '%';
+  const bar = document.getElementById('pc-bar');
+  bar.style.width = pct + '%';
+  if (pct === 100) bar.classList.add('done'); else bar.classList.remove('done');
+
+  const cats = [...new Set(postCommItems.map(p => p.Category).filter(Boolean))];
+  document.getElementById('postcomm-list').innerHTML = cats.map(cat => `
+    <div style="padding:8px 14px;background:var(--navy2);color:#fff;font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase">${cat}</div>
+    ${postCommItems.filter(p=>p.Category===cat).map(p => `
+      <div class="postcomm-item">
+        <input type="checkbox" id="pc-${p.id}" ${p.Completed?'checked':''} onchange="togglePostComm('${p.id}',this.checked)">
+        <label for="pc-${p.id}">${esc(p.CheckItem||'')}</label>
+        ${p.CompletedBy ? `<span class="pc-who">${esc(p.CompletedBy)}</span>` : ''}
+      </div>`).join('')}
+  `).join('');
+}
+
+async function togglePostComm(itemId, checked) {
+  const name = currentUser?.displayName || 'Unknown';
+  const now  = new Date().toISOString();
+  await saveWithFallback(() => updateItem(LISTS.PostComm, itemId, { Completed: checked, CompletedBy: checked ? name : '', CompletedAt: checked ? now : '' }));
+  const item = postCommItems.find(p => p.id === itemId);
+  if (item) { item.Completed = checked; item.CompletedBy = checked ? name : ''; item.CompletedAt = checked ? now : ''; }
+  renderPostComm();
+}
+
+// ══════════════════════════════════════════════════════════
+//  REPORT
+// ══════════════════════════════════════════════════════════
+function generateReport(type) {
+  const proj = currentProject;
+  if (!proj) { showToast('Select a project first.'); return; }
+  const p2pPass = p2pPoints.filter(p=>p.Result==='Pass').length;
+  const p2pFail = p2pPoints.filter(p=>p.Result==='Fail').length;
+  const p2pPend = p2pPoints.filter(p=>!p.Result).length;
+  const sooPassed = sequences.filter(s=>s.Status==='Verified').length;
+  const pcDone = postCommItems.filter(p=>p.Completed).length;
+  const issuesByStatus = {};
+  issues.forEach(i => { issuesByStatus[i.Status] = (issuesByStatus[i.Status]||0)+1; });
+
+  document.getElementById('report-output').innerHTML = `
+    <div class="card" id="report-printable">
+      <div style="background:var(--navy);color:#fff;padding:20px;border-radius:7px 7px 0 0">
+        <div style="font-size:20px;font-weight:800;margin-bottom:4px">BAS Commissioning Report</div>
+        <div style="font-size:13px;opacity:.7">${type==='client'?'Client Report':'Internal Report'} · Generated ${new Date().toLocaleDateString()}</div>
+      </div>
+      <div class="card-body">
+        <div class="report-section">
+          <h3>Project Information</h3>
+          <div class="report-row"><span>Project</span><span style="font-weight:600">${esc(proj.ProjectName||'')}</span></div>
+          <div class="report-row"><span>Building</span><span>${esc(proj.Building||'')}</span></div>
+          <div class="report-row"><span>BAS Platform</span><span>${esc(proj.BASPlatform||'')}</span></div>
+          <div class="report-row"><span>PM / Engineer</span><span>${esc(proj.PMName||'')}</span></div>
+          <div class="report-row"><span>CxA</span><span>${esc(proj.CxAName||'')}</span></div>
+        </div>
+        <div class="report-section">
+          <h3>Issue Summary</h3>
+          ${Object.entries(issuesByStatus).map(([s,n])=>`<div class="report-row"><span>${s}</span><span style="font-weight:700">${n}</span></div>`).join('')}
+          <div class="report-row" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px"><span><strong>Total</strong></span><span style="font-weight:800">${issues.length}</span></div>
+        </div>
+        <div class="report-section">
+          <h3>P2P Checkout Summary</h3>
+          <div class="report-row"><span>Pass</span><span style="font-weight:700;color:var(--pass)">${p2pPass}</span></div>
+          <div class="report-row"><span>Fail</span><span style="font-weight:700;color:var(--fail)">${p2pFail}</span></div>
+          <div class="report-row"><span>Pending</span><span style="font-weight:700;color:var(--warn)">${p2pPend}</span></div>
+          <div class="report-row"><span>Completion</span><span style="font-weight:800">${p2pPoints.length?Math.round(p2pPass/p2pPoints.length*100):0}%</span></div>
+        </div>
+        <div class="report-section">
+          <h3>SOO Verification Summary</h3>
+          <div class="report-row"><span>Sequences Verified</span><span style="font-weight:700;color:var(--pass)">${sooPassed}</span></div>
+          <div class="report-row"><span>Sequences Pending</span><span style="font-weight:700;color:var(--warn)">${sequences.length - sooPassed}</span></div>
+          <div class="report-row"><span>Total Sequences</span><span style="font-weight:800">${sequences.length}</span></div>
+        </div>
+        <div class="report-section">
+          <h3>Post-Commissioning Checklist</h3>
+          <div class="report-row"><span>Completed</span><span style="font-weight:700;color:var(--pass)">${pcDone}</span></div>
+          <div class="report-row"><span>Remaining</span><span style="font-weight:700;color:var(--warn)">${postCommItems.length - pcDone}</span></div>
+          <div class="report-row"><span>Completion</span><span style="font-weight:800">${postCommItems.length?Math.round(pcDone/postCommItems.length*100):0}%</span></div>
+        </div>
+        ${type === 'internal' ? `
+        <div class="report-section">
+          <h3>All Issues — Detail</h3>
+          ${issues.map(i => `
+            <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <span style="font-weight:600;font-size:13px">${esc(i.Title2||i.Title||'Untitled')}</span>
+                <span class="status-badge ${(i.Status||'Open').replace(/ /g,'-')}">${i.Status||'Open'}</span>
+              </div>
+              <div style="font-size:12px;color:var(--muted)">${esc(i.Category||'')} · ${esc(i.Priority||'')} · ${esc(i.Equipment||'')} · Assigned: ${esc(i.AssignedTo||'—')}</div>
+              ${i.ResolutionNotes ? `<div style="font-size:12px;margin-top:4px;color:#065f46">Resolution: ${esc(i.ResolutionNotes)}</div>` : ''}
+            </div>`).join('')}
+        </div>` : ''}
+        <div style="margin-top:24px;border-top:2px solid var(--border);padding-top:16px">
+          <div style="font-weight:700;margin-bottom:12px">Sign-Off</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div><div style="font-size:12px;color:var(--muted);margin-bottom:24px">PM / Engineer</div><div style="border-top:1px solid var(--text);padding-top:4px;font-size:12px">Signature / Date</div></div>
+            <div><div style="font-size:12px;color:var(--muted);margin-bottom:24px">CxA</div><div style="border-top:1px solid var(--text);padding-top:4px;font-size:12px">Signature / Date</div></div>
+            <div><div style="font-size:12px;color:var(--muted);margin-bottom:24px">Owner / Client</div><div style="border-top:1px solid var(--text);padding-top:4px;font-size:12px">Signature / Date</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  showToast('Report generated ✓');
+}
+
+function printReport() {
+  const el = document.getElementById('report-printable');
+  if (!el) { showToast('Generate a report first.'); return; }
+  const win = window.open('', '_blank');
+  win.document.write(`<html><head><title>BAS Commissioning Report</title><style>body{font-family:Arial,sans-serif;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 10px}</style></head><body>${el.outerHTML}</body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// ══════════════════════════════════════════════════════════
+//  PROJECTS
+// ══════════════════════════════════════════════════════════
+function renderProjectSelect() {
+  const sel = document.getElementById('project-select');
+  sel.innerHTML = '<option value="">Select Project…</option>' + projects.map(p => `<option value="${p.id}">${esc(p.ProjectName||p.Title||'Unnamed')}</option>`).join('');
+  if (currentProject) sel.value = currentProject.id;
+}
+
+function renderProjectsList() {
+  const el = document.getElementById('projects-list');
+  if (!projects.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📁</div><p>No projects yet. Create one above.</p></div>'; return; }
+  el.innerHTML = projects.map(p => `
+    <div class="issue-item" onclick="selectProject('${p.id}')">
+      <div class="issue-dot ${p.Status==='Closed'?'Closed':'Assigned'}"></div>
+      <div class="issue-info">
+        <div class="issue-title">${esc(p.ProjectName||p.Title||'Unnamed')}</div>
+        <div class="issue-meta">${esc(p.Building||'')} · ${esc(p.BASPlatform||'')} · PM: ${esc(p.PMName||'')}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function selectProject(id) {
+  const proj = projects.find(p => p.id === id);
+  if (!proj) return;
+  currentProject = proj;
+  document.getElementById('project-select').value = id;
+  document.getElementById('project-tag').textContent = proj.ProjectName || proj.Title || 'Project';
+  showToast('Loading project…');
+  await loadProjectData(id);
+  await seedPostCommChecklist(id);
+  showToast('Project loaded ✓');
+}
+
+async function createProject() {
+  const name = document.getElementById('new-proj-name').value.trim();
+  if (!name) { showToast('Project name required.'); return; }
+  const fields = {
+    Title: name, ProjectName: name,
+    Building: document.getElementById('new-proj-building').value,
+    BASPlatform: document.getElementById('new-proj-bas').value,
+    PMName: document.getElementById('new-proj-pm').value,
+    CxAName: document.getElementById('new-proj-cxa').value,
+    Status: 'Active'
+  };
+  const r = await saveWithFallback(() => createItem(LISTS.Projects, fields));
+  if (r) {
+    const proj = { id: r.id, ...fields };
+    projects.push(proj);
+    renderProjectSelect();
+    renderProjectsList();
+    showToast('Project created ✓');
+    ['new-proj-name','new-proj-building','new-proj-pm','new-proj-cxa'].forEach(id => document.getElementById(id).value = '');
+    await selectProject(r.id);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  OFFLINE QUEUE
+// ══════════════════════════════════════════════════════════
+async function saveWithFallback(fn) {
+  if (!isOnline) {
+    offlineQueue.push({ fn: fn.toString(), ts: Date.now() });
+    localStorage.setItem('bas_offline_queue', JSON.stringify(offlineQueue));
+    showToast('Saved offline — will sync when connected');
+    return null;
+  }
+  try { return await fn(); }
+  catch(e) {
+    console.error('save error', e);
+    showToast('Save error — stored offline');
+    offlineQueue.push({ fn: fn.toString(), ts: Date.now() });
+    localStorage.setItem('bas_offline_queue', JSON.stringify(offlineQueue));
+    return null;
+  }
+}
+
+async function syncAll() {
+  if (!isOnline) { showToast('No connection — sync when online'); return; }
+  if (offlineQueue.length === 0) { showToast('All synced ✓'); return; }
+  showToast(`Syncing ${offlineQueue.length} queued items…`);
+  // Note: full offline sync requires serialized function replay — advise user to refresh
+  offlineQueue = [];
+  localStorage.removeItem('bas_offline_queue');
+  if (currentProject) await loadProjectData(currentProject.id);
+  showToast('Sync complete ✓');
+}
+
+// ══════════════════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════════════════
+function switchTab(btn) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('screen-' + btn.dataset.screen).classList.add('active');
+}
+
+function switchTabById(id) {
+  const btn = document.querySelector(`.nav-tab[data-screen="${id}"]`);
+  if (btn) switchTab(btn);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toggleCheck(cb) {
+  cb.closest('.check-item').classList.toggle('checked', cb.checked);
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch { return String(d); }
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// Online/offline detection
+window.addEventListener('online',  () => { isOnline = true;  document.getElementById('offline-badge').classList.remove('show'); syncAll(); });
+window.addEventListener('offline', () => { isOnline = false; document.getElementById('offline-badge').classList.add('show'); });
+
+// ══════════════════════════════════════════════════════════
+//  COMMON ISSUE TEMPLATES
+// ══════════════════════════════════════════════════════════
+const ISSUE_TEMPLATES = [
+
+  // ── PHYSICAL INSTALLATION ──────────────────────────────
+  { id:'p01', cat:'Physical', priority:'High',
+    title:'Incorrect wire gauge used for field device',
+    desc:'Field device wired with incorrect gauge wire. Verify wire gauge matches specifications on shop drawings and correct if necessary. Check for voltage drop and signal integrity issues.'},
+  { id:'p02', cat:'Physical', priority:'High',
+    title:'Loose terminal connection at controller or field device',
+    desc:'Terminal connection found loose at controller or field device. Vibration from normal operation can shake loose connections over time. Re-terminate and torque to spec.'},
+  { id:'p03', cat:'Physical', priority:'High',
+    title:'Incorrect wiring polarity on analog input/output',
+    desc:'Analog input or output wired with reversed polarity. Signal reads inverted or out of range. Verify +/- terminals against shop drawings and correct wiring.'},
+  { id:'p04', cat:'Physical', priority:'Medium',
+    title:'Sensor installed in incorrect location',
+    desc:'Sensor mounted in a location that does not reflect true conditions — may be near a heat source, in direct sunlight, near a supply diffuser, or outside the conditioned zone. Relocate per design intent.'},
+  { id:'p05', cat:'Physical', priority:'Medium',
+    title:'Temperature sensor missing sun shield (outdoor)',
+    desc:'Outdoor air temperature sensor installed without required sun/radiation shield. Solar gain will cause false high readings and incorrect economizer or OAT reset calculations.'},
+  { id:'p06', cat:'Physical', priority:'Medium',
+    title:'Space temperature sensor mounted with double-sided tape only',
+    desc:'Room thermostat or space sensor secured with adhesive tape rather than screws. Not acceptable per specification. Remove and remount with appropriate fasteners.'},
+  { id:'p07', cat:'Physical', priority:'High',
+    title:'Wrong device wired to controller point (cross-wired)',
+    desc:'Field device wired to incorrect controller point. Example: status of EF-1 connected to alarm input of EF-2. Verify all field wiring against point-to-point schedule and correct.'},
+  { id:'p08', cat:'Physical', priority:'Medium',
+    title:'Conduit support spacing does not meet code',
+    desc:'Conduit installed with support spacing exceeding code requirements. Missing supports, hangers, or straps. Verify and add supports per electrical code and project specifications.'},
+  { id:'p09', cat:'Physical', priority:'Medium',
+    title:'Control panel not properly grounded',
+    desc:'Controller panel or field panel missing required earth ground connection. Improper grounding can cause communication errors, signal noise, and safety hazards.'},
+  { id:'p10', cat:'Physical', priority:'Low',
+    title:'Controller panel door does not close/latch properly',
+    desc:'Panel enclosure door warped, misaligned, or latch not functioning. Panel must close and seal fully to maintain NEMA rating and protect components.'},
+  { id:'p11', cat:'Physical', priority:'Medium',
+    title:'Pneumatic-to-electric (P/E) transducer wiring incorrect',
+    desc:'P/E transducer output wired incorrectly to BAS analog output. Verify signal type (4-20mA vs 0-10VDC) matches controller configuration and re-wire if needed.'},
+  { id:'p12', cat:'Physical', priority:'High',
+    title:'Actuator not properly coupled to valve or damper shaft',
+    desc:'Damper or valve actuator coupling loose, misaligned, or using incorrect clamp type. Actuator shaft slipping or not driving device through full stroke. Recouple per manufacturer spec.'},
+  { id:'p13', cat:'Physical', priority:'Medium',
+    title:'Damper blade travel restricted — not reaching full open or closed',
+    desc:'Damper not achieving full stroke in open or closed position. Check for mechanical obstruction, incorrect actuator sizing, or actuator rotation direction error.'},
+  { id:'p14', cat:'Physical', priority:'Medium',
+    title:'Flow sensor/transmitter not installed with required straight pipe run',
+    desc:'Flow meter or differential pressure transmitter installed without required upstream/downstream straight pipe. Will produce inaccurate flow readings. Relocate or add straight section per manufacturer requirements.'},
+  { id:'p15', cat:'Physical', priority:'High',
+    title:'24VAC transformer not sized correctly for controller load',
+    desc:'Controller or zone panel transformer undersized for connected device load. Controller may brown-out under full load. Verify VA rating against total connected device load and replace if needed.'},
+  { id:'p16', cat:'Physical', priority:'Medium',
+    title:'CO2 sensor installed in supply air stream instead of return/space',
+    desc:'CO2 or air quality sensor incorrectly located in supply air — will read diluted values. Must be in return air stream or occupied space as specified.'},
+  { id:'p17', cat:'Physical', priority:'Low',
+    title:'Missing wire labels / termination markers',
+    desc:'Field wiring not labeled at both ends per specification. Makes troubleshooting and future maintenance difficult. Label all conductors with wire numbers matching as-built drawings.'},
+  { id:'p18', cat:'Physical', priority:'Medium',
+    title:'Chilled water or hot water piping leak at sensor well or valve',
+    desc:'Water leak observed at immersion sensor well, valve packing, or fitting. Tighten or reseal per appropriate procedure. Note: may require system drain-down for pipe fitting leaks.'},
+  { id:'p19', cat:'Physical', priority:'High',
+    title:'Network communication cable shielding not terminated at panel',
+    desc:'BACnet MS/TP, LON, or other communication cable shield not properly terminated at panel ground lug. Ungrounded shields can cause noise, communication errors, and device dropouts.'},
+  { id:'p20', cat:'Physical', priority:'Medium',
+    title:'End-of-line (EOL) resistor missing on MS/TP network',
+    desc:'BACnet MS/TP trunk missing end-of-line resistor at one or both bus ends. Required for proper network termination. Communication errors or device dropouts may occur without it.'},
+  { id:'p21', cat:'Physical', priority:'Medium',
+    title:'Excessive devices on single MS/TP trunk segment',
+    desc:'MS/TP trunk has more than the recommended number of devices. Network may experience collisions, latency, or instability. Evaluate splitting into two trunks via additional controller or router.'},
+  { id:'p22', cat:'Physical', priority:'Low',
+    title:'Device not accessible for service — access panel missing or blocked',
+    desc:'BAS device (controller, actuator, sensor) not accessible for service or maintenance. Access panel missing, blocked by equipment, or inside sealed ceiling without access. Coordinate with GC to provide access.'},
+  { id:'p23', cat:'Physical', priority:'Medium',
+    title:'Relay coil voltage mismatch',
+    desc:'Control relay coil voltage does not match controller output voltage. Relay may not actuate or may be damaged. Verify coil voltage rating matches output and replace if needed.'},
+  { id:'p24', cat:'Physical', priority:'High',
+    title:'Power supply voltage out of spec at controller',
+    desc:'Measured supply voltage at controller terminals outside acceptable range. Low voltage can cause erratic behavior or device damage. Check transformer output, wiring resistance, and load.'},
+
+  // ── SOFTWARE / UI ──────────────────────────────────────
+  { id:'s01', cat:'Software', priority:'High',
+    title:'Sensor reading does not match actual field conditions',
+    desc:'BAS displays a value that does not match hand-held instrument measurement in the field. Possible causes: sensor drift, incorrect range configuration, wiring issue, or scaling error. Verify wiring and calibrate or correct range in software.'},
+  { id:'s02', cat:'Software', priority:'High',
+    title:'Analog input scaling incorrect (wrong range configured)',
+    desc:'Controller AI point configured with incorrect measurement range (e.g., 0-100°F instead of 0-200°F, or 0-1inWC instead of 0-5inWC). Output reading scaled wrong. Correct range in controller database.'},
+  { id:'s03', cat:'Software', priority:'Medium',
+    title:'Sensor offset applied incorrectly in controller',
+    desc:'A calibration offset has been applied in software but it is masking an underlying hardware problem (sensor drift, bad wiring, or incorrect sensor). Evaluate root cause before applying permanent offset.'},
+  { id:'s04', cat:'Software', priority:'High',
+    title:'BAS graphic point not mapped or showing wrong value',
+    desc:'Graphic display shows dashes, "N/A", a stale value, or a value that does not match the controller. Point reference on graphic is incorrect, unmapped, or pointing to wrong object. Correct point binding on graphic.'},
+  { id:'s05', cat:'Software', priority:'Medium',
+    title:'Graphic navigation link broken or missing',
+    desc:'Navigation button or link on BAS graphic does not work or leads to wrong screen. Fix hyperlink reference to correct graphic page.'},
+  { id:'s06', cat:'Software', priority:'Medium',
+    title:'Graphic animation not functioning (valve, damper, fan)',
+    desc:'Animated element on graphic (rotating fan, opening valve, moving damper) is static or not responding to actual system state. Correct animation binding to the correct controller object/property.'},
+  { id:'s07', cat:'Software', priority:'High',
+    title:'Setpoint not writable from BAS front-end',
+    desc:'Operator cannot change setpoint from BAS UI — field is read-only or changes revert immediately. Verify object is configured as commandable/writable and not overridden by a higher priority command.'},
+  { id:'s08', cat:'Software', priority:'High',
+    title:'BACnet object priority array — incorrect command priority in use',
+    desc:'Controller output or setpoint being overridden by an unexpected BACnet priority level (commonly Priority 8 — Manual Operator, or Priority 6 — Minimum On/Off). Release incorrect priorities and verify normal program operates at the correct level.'},
+  { id:'s09', cat:'Software', priority:'Medium',
+    title:'Alarm not configured for critical point',
+    desc:'A critical analog or binary point (high duct static, freeze stat, fire alarm, equipment fault) has no alarm configured in the BAS. Configure alarm with appropriate limits, priority, and notification.'},
+  { id:'s10', cat:'Software', priority:'Medium',
+    title:'Alarm limit set incorrectly (too tight or too wide)',
+    desc:'Alarm threshold configured at a value that causes nuisance alarms or misses true fault conditions. Review alarm setpoints against design intent and adjust. Document changes.'},
+  { id:'s11', cat:'Software', priority:'Low',
+    title:'Alarm notification routing not configured',
+    desc:'Alarm is configured in the controller but notification (email, SMS, on-screen banner) not routing to correct recipient or group. Configure alarm notification class and recipient list.'},
+  { id:'s12', cat:'Software', priority:'Medium',
+    title:'Occupancy schedule not configured or incorrect',
+    desc:'BAS occupancy schedule missing, set to wrong times, or using incorrect day/holiday calendar. System may run 24/7 or fail to go occupied at correct times. Configure schedule per owner requirements.'},
+  { id:'s13', cat:'Software', priority:'Medium',
+    title:'Holiday/special event calendar not set up',
+    desc:'Building automation system holiday calendar not configured for the current year. System will follow standard occupied schedule on holidays. Enter holidays per owner-provided calendar.'},
+  { id:'s14', cat:'Software', priority:'Low',
+    title:'Trend log not configured for key points',
+    desc:'Important points (zone temps, setpoints, valve positions, flow rates) not being trended. Configure trend logs with appropriate sample interval and log depth per specification.'},
+  { id:'s15', cat:'Software', priority:'Medium',
+    title:'PID loop tuning — output hunting or sluggish response',
+    desc:'Control loop output oscillating (hunting) or responding too slowly to setpoint changes. PID gain parameters (P, I, D) need tuning for actual system characteristics. Document current and adjusted values.'},
+  { id:'s16', cat:'Software', priority:'High',
+    title:'Simultaneous heating and cooling — control logic error',
+    desc:'BAS is commanding both heating and cooling outputs active simultaneously. Deadband logic missing or incorrect in sequence. Wasteful and may damage equipment. Correct heating/cooling interlock logic.'},
+  { id:'s17', cat:'Software', priority:'High',
+    title:'Economizer control not functioning correctly',
+    desc:'Economizer mode not enabling when outdoor conditions are favorable, or enabling when they should not be. Verify OAT/OAH lockout limits, enthalpy calculation, and minimum OA damper position logic.'},
+  { id:'s18', cat:'Software', priority:'Medium',
+    title:'Supply air temperature reset schedule not implemented',
+    desc:'SAT reset logic not programmed or not functioning. System maintaining a fixed supply temperature instead of resetting based on OAT or zone demand. Implement and verify reset schedule per sequence.'},
+  { id:'s19', cat:'Software', priority:'Medium',
+    title:'Duct static pressure reset not functioning',
+    desc:'Static pressure setpoint not resetting based on VAV box demand. All VAVs may be operating at maximum open, indicating static pressure is too low, or static is being maintained unnecessarily high.'},
+  { id:'s20', cat:'Software', priority:'High',
+    title:'Fan or pump enabled with no proof of operation feedback',
+    desc:'BAS shows fan or pump commanded ON but status/proof point not verifying operation. Either the proof point is not wired/configured, or the device is not actually running. Investigate and correct.'},
+  { id:'s21', cat:'Software', priority:'Medium',
+    title:'Startup/shutdown sequencing not following specified order',
+    desc:'System startup or shutdown sequence not following specified order of operations (e.g., fans starting before dampers open, or pumps stopping before isolation valves close). Correct sequence timing and interlocks.'},
+  { id:'s22', cat:'Software', priority:'Medium',
+    title:'Night setback or unoccupied setpoints incorrect',
+    desc:'Unoccupied heating or cooling setpoints not set to specified values. Verify and correct unoccupied setpoints per owner requirements and energy code minimums.'},
+  { id:'s23', cat:'Software', priority:'Low',
+    title:'BAS user account permissions not configured correctly',
+    desc:'Operator or owner user account has too many or too few permissions. Verify user roles (view-only, operator, supervisor, administrator) match intended access level for each user.'},
+  { id:'s24', cat:'Software', priority:'Low',
+    title:'BAS workstation time/date not synchronized',
+    desc:'Controller or workstation time not synchronized with site network time server. Alarms and trends will have incorrect timestamps. Configure NTP sync to site domain or internet time server.'},
+  { id:'s25', cat:'Software', priority:'Medium',
+    title:'VAV box minimum airflow setpoint not configured correctly',
+    desc:'VAV minimum CFM setpoint set to zero, too low for ventilation code compliance, or too high causing reheat energy waste. Verify against design minimum and correct in controller.'},
+  { id:'s26', cat:'Software', priority:'Medium',
+    title:'Demand-controlled ventilation (DCV) logic not functioning',
+    desc:'CO2-based DCV not adjusting OA damper position in response to CO2 levels. Verify CO2 sensor is reading correctly, DCV logic is enabled, and OA minimum is adjusting properly.'},
+  { id:'s27', cat:'Software', priority:'High',
+    title:'Freeze protection logic not functioning',
+    desc:'Freeze stat input not initiating freeze protection response (close OA dampers, open HW valve, alarm). Test freeze protection sequence and correct as needed. Critical life-safety/equipment protection function.'},
+  { id:'s28', cat:'Software', priority:'Medium',
+    title:'BAS network device offline / communication loss',
+    desc:'One or more controllers or field devices showing offline or communication loss in BAS. Check physical network (cable, termination, address conflicts) and controller power before troubleshooting software.'},
+  { id:'s29', cat:'Software', priority:'Low',
+    title:'UI graphic color scheme or labeling does not match facility standards',
+    desc:'Graphic color coding or equipment labeling does not match owner-specified or facility standards. Update graphics to conform to agreed-upon color scheme and naming conventions.'},
+  { id:'s30', cat:'Software', priority:'Low',
+    title:'BAS help text or equipment descriptions missing from graphics',
+    desc:'Graphic pages missing descriptive labels, equipment IDs, or engineer notes that help operators understand system operation. Add appropriate labels and descriptions.'},
+
+  // ── SOO ──────────────────────────────────────────────
+  { id:'o01', cat:'SOO', priority:'High',
+    title:'Morning warmup sequence not initiating at scheduled time',
+    desc:'System not entering pre-occupancy warmup mode at specified time before occupied period. Check schedule configuration, setback setpoints, and warmup logic trigger conditions.'},
+  { id:'o02', cat:'SOO', priority:'High',
+    title:'Heating/cooling changeover logic incorrect',
+    desc:'System switching between heating and cooling modes at wrong conditions, or both modes active simultaneously. Review changeover logic, OAT reset triggers, and deadband settings.'},
+  { id:'o03', cat:'SOO', priority:'Medium',
+    title:'Unoccupied mode not activating correctly',
+    desc:'System not entering unoccupied mode at end of occupied period. May continue running at occupied setpoints, wasting energy. Check schedule, occupancy sensor logic, and mode transition code.'},
+  { id:'o04', cat:'SOO', priority:'High',
+    title:'Minimum outdoor air damper position not maintained during occupied mode',
+    desc:'OA damper position dropping below design minimum CFM during occupied hours. Ventilation code compliance issue. Verify minimum position setpoint and damper control logic.'},
+  { id:'o05', cat:'SOO', priority:'Medium',
+    title:'Supply fan VFD speed not resetting per static pressure sequence',
+    desc:'Fan speed not modulating properly in response to duct static pressure. May be running at fixed speed or not reaching minimum/maximum limits. Verify VFD signal, PID loop, and static sensor location.'},
+  { id:'o06', cat:'SOO', priority:'Medium',
+    title:'Chilled water valve not modulating — staying fully open or closed',
+    desc:'CHW valve not modulating in response to cooling demand. Stuck at one position. Check actuator operation, valve command signal, and control loop output.'},
+  { id:'o07', cat:'SOO', priority:'Medium',
+    title:'Hot water valve not modulating — staying fully open or closed',
+    desc:'HW valve not modulating in response to heating demand. Check actuator coupling, valve command, and heating loop logic.'},
+  { id:'o08', cat:'SOO', priority:'High',
+    title:'Fire/smoke alarm integration not shutting down AHU',
+    desc:'AHU not shutting down in response to fire alarm or smoke detector input. Critical life-safety function. Verify hardwired interlock and BAS software response to fire alarm point.'},
+  { id:'o09', cat:'SOO', priority:'Medium',
+    title:'Demand limit / load shedding not responding to utility signal',
+    desc:'BAS not responding correctly to demand limit or load shedding signal. Equipment should shed or setpoints should adjust on signal. Verify input wiring and logic.'},
+  { id:'o10', cat:'SOO', priority:'Low',
+    title:'Optimal start not calculating pre-cool/pre-heat time correctly',
+    desc:'Optimal start algorithm not adjusting startup time based on OAT or zone temperature delta. System starting at fixed time instead of adapting. Review optimal start parameters and calibration.'},
+
+  // ── P2P ──────────────────────────────────────────────
+  { id:'x01', cat:'P2P', priority:'High',
+    title:'AI point reads out of range (below 0 or above 100%)',
+    desc:'Analog input reading below 4mA (below 0%) or above 20mA (above 100%) at controller. Check sensor wiring, power supply, and sensor output range. Common cause: open circuit on 4-20mA loop.'},
+  { id:'x02', cat:'P2P', priority:'High',
+    title:'DI status point reads wrong state (inverted)',
+    desc:'Digital input reading OPEN when device is ON, or CLOSED when device is OFF. Point logic is inverted. Correct in controller software (invert point) or re-wire NO/NC terminal at device.'},
+  { id:'x03', cat:'P2P', priority:'High',
+    title:'DO output not actuating field device',
+    desc:'Controller commanding digital output but field device (relay, starter, valve) not responding. Check output wiring, relay coil voltage, and output module.'},
+  { id:'x04', cat:'P2P', priority:'Medium',
+    title:'AO command not producing expected voltage/current at device',
+    desc:'Analog output commanded to a value but measured signal at device does not match expected voltage or current. Check output configuration (0-10V vs 4-20mA), wiring, and load impedance.'},
+  { id:'x05', cat:'P2P', priority:'Medium',
+    title:'BACnet object address conflict on MS/TP network',
+    desc:'Two or more devices sharing the same MAC address on MS/TP trunk. Causes communication errors and point flickering. Reassign unique addresses to conflicting devices.'},
+  { id:'x06', cat:'P2P', priority:'Medium',
+    title:'Point not found in controller database',
+    desc:'Expected point does not exist in controller object list. May have been omitted during programming or named differently. Verify point schedule and add or rename as needed.'},
+];
+
+let selectedTemplates = [];
+
+function openTemplateModal() {
+  if (!currentProject) { showToast('Select a project first.'); return; }
+  selectedTemplates = [];
+  renderTemplates();
+  openModal('modal-templates');
+}
+
+function renderTemplates() {
+  const fCat    = document.getElementById('tmpl-filter')?.value || '';
+  const search  = (document.getElementById('tmpl-search')?.value || '').toLowerCase();
+
+  let list = ISSUE_TEMPLATES;
+  if (fCat)   list = list.filter(t => t.cat === fCat);
+  if (search) list = list.filter(t => t.title.toLowerCase().includes(search) || t.desc.toLowerCase().includes(search));
+
+  // Group by category
+  const groups = {};
+  list.forEach(t => {
+    if (!groups[t.cat]) groups[t.cat] = [];
+    groups[t.cat].push(t);
+  });
+
+  const catLabels = { Physical: 'Physical Installation', Software: 'Software / UI', SOO: 'Sequence of Operations', P2P: 'P2P Checkout' };
+
+  const html = Object.entries(groups).map(([cat, items]) => `
+    <div class="tmpl-group-header">${catLabels[cat] || cat} — ${items.length} issues</div>
+    ${items.map(t => {
+      const sel = selectedTemplates.includes(t.id);
+      return `<div class="tmpl-item ${sel?'selected':''}" onclick="toggleTemplate('${t.id}',this)">
+        <input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleTemplate('${t.id}',this.closest('.tmpl-item'))">
+        <div class="tmpl-body">
+          <div class="tmpl-title">${esc(t.title)}</div>
+          <div class="tmpl-desc">${esc(t.desc.substring(0,120))}${t.desc.length>120?'…':''}</div>
+          <div class="tmpl-tags">
+            <span class="tag ${t.cat}">${t.cat}</span>
+            <span class="tag prio-${t.priority}">${t.priority}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+  `).join('');
+
+  document.getElementById('templates-list').innerHTML = html || '<div class="empty-state" style="padding:24px"><p>No templates match your search.</p></div>';
+
+  // Update selected bar
+  const bar = document.getElementById('tmpl-selected-bar');
+  if (selectedTemplates.length > 0) {
+    bar.style.display = 'block';
+    bar.textContent = `${selectedTemplates.length} issue${selectedTemplates.length>1?'s':''} selected — tap "Log Selected Issues" to add them`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function toggleTemplate(id, el) {
+  const idx = selectedTemplates.indexOf(id);
+  if (idx === -1) {
+    selectedTemplates.push(id);
+    el.classList.add('selected');
+    el.querySelector('input[type=checkbox]').checked = true;
+  } else {
+    selectedTemplates.splice(idx, 1);
+    el.classList.remove('selected');
+    el.querySelector('input[type=checkbox]').checked = false;
+  }
+  const bar = document.getElementById('tmpl-selected-bar');
+  if (selectedTemplates.length > 0) {
+    bar.style.display = 'block';
+    bar.textContent = `${selectedTemplates.length} issue${selectedTemplates.length>1?'s':''} selected — tap "Log Selected Issues" to add them`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function logSelectedTemplates() {
+  if (!selectedTemplates.length) { showToast('Select at least one issue.'); return; }
+  if (!currentProject) { showToast('Select a project first.'); return; }
+  closeModal('modal-templates');
+  showToast(`Logging ${selectedTemplates.length} issue${selectedTemplates.length>1?'s':''}…`);
+
+  for (const id of selectedTemplates) {
+    const t = ISSUE_TEMPLATES.find(x => x.id === id);
+    if (!t) continue;
+    const assigned = t.cat === 'Physical' ? 'Field Technician' : (t.cat === 'Software' || t.cat === 'SOO') ? 'Controls Engineer' : '';
+    const fields = {
+      Title: t.title, Title2: t.title,
+      ProjectId: currentProject.id,
+      Category: t.cat,
+      Priority: t.priority,
+      Status: assigned ? 'Assigned' : 'Open',
+      Description: t.desc,
+      AssignedTo: assigned,
+      ReportedBy: currentUser?.displayName || 'Unknown'
+    };
+    const r = await saveWithFallback(() => createItem(LISTS.Issues, fields));
+    if (r) issues.push({ id: r.id, ...fields, Created: new Date().toISOString() });
+  }
+
+  selectedTemplates = [];
+  renderAll();
+  showToast(`${selectedTemplates.length || 'Issues'} logged successfully ✓`);
+}
+
+// ══════════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════════
+async function boot() {
+  // Try to get token from URL hash (post-auth redirect)
+  let token = parseTokenFromHash();
+  if (!token) token = loadCachedToken();
+
+  if (!token) {
+    document.getElementById('login-screen').style.display = 'flex';
+    return;
+  }
+
+  accessToken = token;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  // Get user info
+  try {
+    currentUser = await graphGet('/me');
+    const initials = (currentUser.displayName||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('user-initials').textContent = initials;
+  } catch(e) { console.warn('user info', e); }
+
+  if (!isOnline) document.getElementById('offline-badge').classList.add('show');
+
+  await loadProjects();
+}
+
+boot();
+
+// ══════════════════════════════════════════════════════════
+//  ISSUE NUMBERING
+// ══════════════════════════════════════════════════════════
+function generateIssueNumber(projectId) {
+  const year = new Date().getFullYear();
+  const projIssues = issues.filter(i => i.ProjectId === projectId);
+  const seq = String(projIssues.length + 1).padStart(3, '0');
+  return `CCO-${year}-${seq}`;
+}
+
+// ══════════════════════════════════════════════════════════
+//  PHOTO ATTACHMENTS
+// ══════════════════════════════════════════════════════════
+let pendingPhotos = []; // { file, dataUrl, name }
+
+function handlePhotoSelect(input, prefix) {
+  const files = Array.from(input.files);
+  files.forEach(file => addPhoto(file, prefix));
+}
+
+function handlePhotoDrop(event, prefix) {
+  event.preventDefault();
+  document.getElementById(`${prefix}-photo-zone`).style.borderColor = 'var(--border)';
+  Array.from(event.dataTransfer.files)
+    .filter(f => f.type.startsWith('image/'))
+    .forEach(f => addPhoto(f, prefix));
+}
+
+function addPhoto(file, prefix) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const entry = { file, dataUrl: e.target.result, name: file.name };
+    pendingPhotos.push(entry);
+    renderPhotoPreviews(prefix);
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderPhotoPreviews(prefix) {
+  const el = document.getElementById(`${prefix}-photo-preview`);
+  if (!el) return;
+  el.innerHTML = pendingPhotos.map((p, i) => `
+    <div style="position:relative;display:inline-block">
+      <img src="${p.dataUrl}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1.5px solid var(--border)">
+      <button onclick="removePhoto(${i},'${prefix}')"
+        style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--fail);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
+      <div style="font-size:9px;color:var(--muted);text-align:center;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</div>
+    </div>`).join('');
+}
+
+function removePhoto(idx, prefix) {
+  pendingPhotos.splice(idx, 1);
+  renderPhotoPreviews(prefix);
+}
+
+async function uploadPhotosToSharePoint(issueId, issueNumber) {
+  if (!pendingPhotos.length) return [];
+  await ensureSiteId();
+  const uploaded = [];
+  for (const photo of pendingPhotos) {
+    try {
+      // Convert dataUrl to blob
+      const res  = await fetch(photo.dataUrl);
+      const blob = await res.blob();
+      const fname = `${issueNumber}_${Date.now()}_${photo.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+      // Upload to SharePoint site drive
+      const uploadRes = await fetch(
+        `${GRAPH}/sites/${siteId}/drive/root:/BASTracker_Attachments/${issueId}/${fname}:/content`,
+        { method: 'PUT', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': blob.type }, body: blob }
+      );
+      if (uploadRes.ok) {
+        const data = await uploadRes.json();
+        uploaded.push({ name: fname, url: data.webUrl });
+      }
+    } catch(e) { console.warn('photo upload err', e); }
+  }
+  pendingPhotos = [];
+  return uploaded;
+}
+
+// Add photo to existing issue
+function openAddPhotoModal(issueId) {
+  pendingPhotos = [];
+  document.getElementById('add-photo-issue-id').value = issueId;
+  document.getElementById('add-photo-preview').innerHTML = '';
+  openModal('modal-add-photo');
+}
+
+async function saveAddedPhotos() {
+  const issueId = document.getElementById('add-photo-issue-id').value;
+  const issue   = issues.find(i => i.id === issueId);
+  if (!issue || !pendingPhotos.length) { showToast('No photos selected.'); return; }
+  showToast('Uploading photos…');
+  const uploaded = await uploadPhotosToSharePoint(issueId, issue.IssueNumber || issueId);
+  if (uploaded.length) {
+    // Store photo URLs in activity log note
+    const urlList = uploaded.map(u => u.url).join('\n');
+    await saveWithFallback(() => createItem(LISTS.ActivityLog, {
+      IssueId: issueId,
+      Action: `📷 ${uploaded.length} photo${uploaded.length>1?'s':''} attached`,
+      Note: urlList,
+      UserName: currentUser?.displayName || 'Unknown'
+    }));
+    // Update local activity log
+    activityLog.push({ IssueId: issueId, Action: `📷 ${uploaded.length} photo${uploaded.length>1?'s':''} attached`, Note: urlList, UserName: currentUser?.displayName||'Unknown', Created: new Date().toISOString() });
+    closeModal('modal-add-photo');
+    showToast(`${uploaded.length} photo${uploaded.length>1?'s':''} uploaded ✓`);
+    openDetail(issueId); // refresh detail view
+  } else {
+    showToast('Upload failed — check connection.');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  WARRANTY FLAG
+// ══════════════════════════════════════════════════════════
+async function toggleWarranty(issueId) {
+  const issue = issues.find(i => i.id === issueId);
+  if (!issue) return;
+  const newVal = !issue.IsWarranty;
+  await saveWithFallback(() => updateItem(LISTS.Issues, issueId, { IsWarranty: newVal ? 'Yes' : '' }));
+  await saveWithFallback(() => createItem(LISTS.ActivityLog, {
+    IssueId: issueId,
+    Action: newVal ? '⚑ Marked as Warranty Item' : 'Warranty flag removed',
+    UserName: currentUser?.displayName || 'Unknown'
+  }));
+  issue.IsWarranty = newVal ? 'Yes' : '';
+  showToast(newVal ? 'Marked as warranty item ✓' : 'Warranty flag removed');
+  openDetail(issueId);
+}
+
+// ══════════════════════════════════════════════════════════
+//  MULTI-PROJECT DASHBOARD
+// ══════════════════════════════════════════════════════════
+async function renderAllProjects() {
+  const el = document.getElementById('all-projects-grid');
+  if (!projects.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📁</div><p>No projects yet. Go to Settings to create your first project.</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="spinner"></div>';
+
+  // Build project cards — load summary data for each
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">';
+  for (const proj of projects) {
+    // Use cached data if this is the current project, else show stored counts
+    const projIssues = proj.id === currentProject?.id ? issues : (proj._cachedIssues || []);
+    const projP2P    = proj.id === currentProject?.id ? p2pPoints : (proj._cachedP2P || []);
+
+    const openCount   = projIssues.filter(i => i.Status === 'Open' || i.Status === 'Assigned').length;
+    const critCount   = projIssues.filter(i => i.Priority === 'Critical' && i.Status !== 'Closed').length;
+    const p2pPass     = projP2P.filter(p => p.Result === 'Pass').length;
+    const p2pTotal    = projP2P.length;
+    const p2pPct      = p2pTotal ? Math.round(p2pPass / p2pTotal * 100) : 0;
+
+    // Health color
+    let health = 'pass', healthLabel = 'On Track';
+    if (critCount > 0)      { health = 'fail';  healthLabel = `${critCount} Critical`; }
+    else if (openCount > 5) { health = 'warn';  healthLabel = `${openCount} Open`; }
+    else if (openCount > 0) { health = 'warn';  healthLabel = `${openCount} Open`; }
+
+    const healthColor = health === 'pass' ? 'var(--pass)' : health === 'fail' ? 'var(--fail)' : 'var(--warn)';
+
+    html += `
+      <div class="card" style="cursor:pointer;border-top:3px solid ${healthColor}" onclick="selectProjectAndSwitch('${proj.id}')">
+        <div class="card-body" style="padding:14px 16px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
+            <div>
+              <div style="font-weight:700;font-size:15px;margin-bottom:3px">${esc(proj.ProjectName||proj.Title||'Unnamed')}</div>
+              <div style="font-size:12px;color:var(--muted)">${esc(proj.Building||'')} · ${esc(proj.BASPlatform||'')}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${healthColor};white-space:nowrap;padding:3px 8px;border-radius:10px;background:${healthColor}22">${healthLabel}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+            <div style="text-align:center;background:var(--surface);border-radius:6px;padding:8px 4px">
+              <div style="font-size:20px;font-weight:800;color:var(--fail)">${openCount}</div>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Open</div>
+            </div>
+            <div style="text-align:center;background:var(--surface);border-radius:6px;padding:8px 4px">
+              <div style="font-size:20px;font-weight:800;color:var(--steel)">${projIssues.length}</div>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Total</div>
+            </div>
+            <div style="text-align:center;background:var(--surface);border-radius:6px;padding:8px 4px">
+              <div style="font-size:20px;font-weight:800;color:var(--pass)">${p2pPct}%</div>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">P2P</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">PM: ${esc(proj.PMName||'—')} · CxA: ${esc(proj.CxAName||'—')}</div>
+        </div>
+      </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function selectProjectAndSwitch(projId) {
+  await selectProject(projId);
+  switchTabById('dashboard');
+}
+
+// ══════════════════════════════════════════════════════════
+//  KNOWIFY TIME TRACKING
+// ══════════════════════════════════════════════════════════
+async function openKnowifyModal(issueId) {
+  const issue = issues.find(i => i.id === issueId);
+  if (!issue) return;
+  document.getElementById('kfy-issue-id').value   = issueId;
+  document.getElementById('kfy-issue-ref').textContent = esc(issue.IssueNumber || issueId);
+  document.getElementById('kfy-issue-title').textContent = esc(issue.Title2 || issue.Title || '');
+  document.getElementById('kfy-hours').value       = '';
+  document.getElementById('kfy-date').value        = new Date().toISOString().split('T')[0];
+  document.getElementById('kfy-notes').value       = `${issue.IssueNumber||''} — ${issue.Title2||issue.Title||''} · ${issue.Equipment||''}`.trim();
+  document.getElementById('kfy-status').textContent = '';
+  closeModal('modal-detail');
+  openModal('modal-knowify');
+}
+
+async function submitKnowifyTime() {
+  const issueId = document.getElementById('kfy-issue-id').value;
+  const hours   = parseFloat(document.getElementById('kfy-hours').value);
+  const date    = document.getElementById('kfy-date').value;
+  const notes   = document.getElementById('kfy-notes').value.trim();
+  const statusEl = document.getElementById('kfy-status');
+
+  if (!hours || hours <= 0) { showToast('Enter valid hours.'); return; }
+  if (!notes) { showToast('Notes are required.'); return; }
+
+  statusEl.textContent = 'Submitting to Knowify…';
+  statusEl.style.color = 'var(--steel)';
+
+  try {
+    // Use the Knowify MCP connector via the Anthropic API
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: 'You are a Knowify time entry assistant. When asked to log time, use the Knowify MCP tool to create a time entry. Respond with JSON only: {"success": true/false, "message": "..."}',
+        messages: [{ role: 'user', content: `Log ${hours} hours on ${date} with description: "${notes}". Project: ${currentProject?.ProjectName || ''}. Return JSON only.` }],
+        mcp_servers: [{ type: 'url', url: 'https://assistant.knowify.com/api/v2/mcp', name: 'knowify' }]
+      })
+    });
+    const data = await response.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+
+    // Log it in the activity log regardless
+    await saveWithFallback(() => createItem(LISTS.ActivityLog, {
+      IssueId: issueId,
+      Action: `⏱ ${hours}h logged in Knowify`,
+      Note: notes,
+      UserName: currentUser?.displayName || 'Unknown'
+    }));
+    activityLog.push({ IssueId: issueId, Action: `⏱ ${hours}h logged in Knowify`, Note: notes, UserName: currentUser?.displayName||'Unknown', Created: new Date().toISOString() });
+
+    statusEl.textContent = `✓ ${hours}h logged successfully`;
+    statusEl.style.color = 'var(--pass)';
+    setTimeout(() => { closeModal('modal-knowify'); openDetail(issueId); }, 1200);
+
+  } catch(e) {
+    // Fallback — log locally even if Knowify API not reachable
+    await saveWithFallback(() => createItem(LISTS.ActivityLog, {
+      IssueId: issueId,
+      Action: `⏱ ${hours}h time note (Knowify sync pending)`,
+      Note: notes,
+      UserName: currentUser?.displayName || 'Unknown'
+    }));
+    statusEl.textContent = `Logged locally — sync to Knowify manually`;
+    statusEl.style.color = 'var(--warn)';
+    setTimeout(() => { closeModal('modal-knowify'); }, 1500);
+  }
+}
+
+</script>
+<!-- Add Photo Modal -->
+<div class="modal-overlay" id="modal-add-photo">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Add Photos</h2>
+    <input type="hidden" id="add-photo-issue-id">
+    <div id="add-photo-zone" style="border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px" onclick="document.getElementById('add-photo-file').click()" ondragover="event.preventDefault()" ondrop="handlePhotoDrop(event,'add-photo')">
+      <div style="font-size:28px;margin-bottom:6px">📷</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Tap to take a photo or choose from gallery</div>
+      <div style="font-size:12px;color:var(--muted)">Supports JPG, PNG, HEIC</div>
+      <input type="file" id="add-photo-file" accept="image/*" multiple capture="environment" style="display:none" onchange="handlePhotoSelect(this,'add-photo')">
+    </div>
+    <div id="add-photo-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" onclick="saveAddedPhotos()">Upload Photos</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-photo');pendingPhotos=[]">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Knowify Time Log Modal -->
+<div class="modal-overlay" id="modal-knowify">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Log Time in Knowify</h2>
+    <input type="hidden" id="kfy-issue-id">
+    <div style="background:var(--surface);border-radius:8px;padding:10px 14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--steel);margin-bottom:2px" id="kfy-issue-ref"></div>
+      <div style="font-size:13px;font-weight:600" id="kfy-issue-title"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Hours</label><input type="number" id="kfy-hours" placeholder="e.g. 2.5" step="0.25" min="0.25" max="24"></div>
+      <div class="form-group"><label>Date</label><input type="date" id="kfy-date"></div>
+    </div>
+    <div class="form-group"><label>Description / Notes</label><textarea id="kfy-notes" style="min-height:70px" placeholder="Work performed…"></textarea></div>
+    <div id="kfy-status" style="font-size:13px;font-weight:600;min-height:20px;margin-bottom:8px;text-align:center"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" onclick="submitKnowifyTime()">Submit to Knowify</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-knowify')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
