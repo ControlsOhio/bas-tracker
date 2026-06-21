@@ -1048,6 +1048,44 @@ function signIn() {
   window.location = AUTH_URL + '?' + params;
 }
 
+function silentSignIn() {
+  return new Promise((resolve) => {
+    const params = new URLSearchParams({
+      client_id: CLIENT_ID,
+      response_type: 'token',
+      redirect_uri: REDIRECT,
+      scope: SCOPES.join(' '),
+      response_mode: 'fragment',
+      nonce: Math.random().toString(36),
+      prompt: 'none'  // silent — no UI shown
+    });
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = AUTH_URL + '?' + params;
+    let resolved = false;
+    iframe.onload = () => {
+      try {
+        const hash = iframe.contentWindow.location.hash.substring(1);
+        const p = new URLSearchParams(hash);
+        const token = p.get('access_token');
+        if (token) {
+          const exp = Date.now() + (parseInt(p.get('expires_in') || '3600') * 1000);
+          localStorage.setItem('bas_token', JSON.stringify({ token, exp }));
+          accessToken = token;
+          resolved = true;
+          resolve(token);
+        }
+      } catch(e) { /* cross-origin — expected if login needed */ }
+      if (!resolved) resolve(null);
+      document.body.removeChild(iframe);
+    };
+    setTimeout(() => {
+      if (!resolved) { resolve(null); try { document.body.removeChild(iframe); } catch {} }
+    }, 8000);
+    document.body.appendChild(iframe);
+  });
+}
+
 function parseTokenFromHash() {
   const hash = window.location.hash.substring(1);
   if (!hash) return null;
@@ -1056,7 +1094,6 @@ function parseTokenFromHash() {
   const err = p.get('error_description');
   if (err) { document.getElementById('login-error').textContent = err; return null; }
   if (token) {
-    // store with expiry
     const exp = Date.now() + (parseInt(p.get('expires_in') || '3600') * 1000);
     localStorage.setItem('bas_token', JSON.stringify({ token, exp }));
     history.replaceState(null, '', REDIRECT);
@@ -1075,33 +1112,88 @@ function loadCachedToken() {
   } catch { return null; }
 }
 
+// Auto-refresh token 5 minutes before expiry
+function scheduleTokenRefresh() {
+  try {
+    const s = localStorage.getItem('bas_token');
+    if (!s) return;
+    const { exp } = JSON.parse(s);
+    const msUntilRefresh = (exp - Date.now()) - (5 * 60 * 1000); // 5 min before expiry
+    if (msUntilRefresh <= 0) {
+      refreshToken();
+    } else {
+      setTimeout(refreshToken, msUntilRefresh);
+    }
+  } catch {}
+}
+
+async function refreshToken() {
+  const newToken = await silentSignIn();
+  if (newToken) {
+    accessToken = newToken;
+    scheduleTokenRefresh();
+  } else {
+    // Silent refresh failed — show a non-intrusive refresh prompt
+    showToast('Session expiring — tap to refresh');
+    document.getElementById('topbar').style.cursor = 'pointer';
+    document.getElementById('topbar').onclick = () => signIn();
+  }
+}
+
+// Intercept 401/expired token errors in graph calls and auto-retry once
+async function graphCallWithRetry(fn) {
+  try {
+    return await fn();
+  } catch(e) {
+    if (e.message && (e.message.includes('InvalidAuthenticationToken') || e.message.includes('token is expired') || e.message.includes('401'))) {
+      showToast('Refreshing session…');
+      const newToken = await silentSignIn();
+      if (newToken) {
+        accessToken = newToken;
+        return await fn(); // retry once with new token
+      } else {
+        showToast('Session expired — signing in again…');
+        setTimeout(signIn, 1500);
+        throw e;
+      }
+    }
+    throw e;
+  }
+}
+
 // ══════════════════════════════════════════════════════════
 //  GRAPH API HELPERS
 // ══════════════════════════════════════════════════════════
 async function graphGet(path) {
-  const r = await fetch(GRAPH + path, { headers: { Authorization: 'Bearer ' + accessToken } });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  return graphCallWithRetry(async () => {
+    const r = await fetch(GRAPH + path, { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  });
 }
 
 async function graphPost(path, body) {
-  const r = await fetch(GRAPH + path, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+  return graphCallWithRetry(async () => {
+    const r = await fetch(GRAPH + path, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
   });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
 }
 
 async function graphPatch(path, body) {
-  const r = await fetch(GRAPH + path, {
-    method: 'PATCH',
-    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+  return graphCallWithRetry(async () => {
+    const r = await fetch(GRAPH + path, {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
   });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2737,6 +2829,9 @@ async function boot() {
   accessToken = token;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+
+  // Schedule automatic token refresh
+  scheduleTokenRefresh();
 
   // Get user info
   try {
